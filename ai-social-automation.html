@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AutoPost AI — Instagram Automation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root { --accent-from: #7c3aed; --accent-to: #2563eb; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .grad-btn {
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .grad-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .grad-btn:active { transform: scale(0.98); }
+  .grad-text {
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .drop-zone { border: 2px dashed #a78bfa; transition: all 0.2s; }
+  .drop-zone.drag-over { border-color: #7c3aed; background: #f5f3ff; }
+  .dark .drop-zone.drag-over { background: #1e1b4b; }
+  .card { transition: box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 8px 32px 0 rgba(124,58,237,0.10); }
+  .spinner {
+    width: 20px; height: 20px; border: 2.5px solid #fff4;
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
+  .status-pending { background: #fef3c7; color: #92400e; }
+  .status-posted { background: #d1fae5; color: #065f46; }
+  .status-error { background: #fee2e2; color: #991b1b; }
+  .dark .status-pending { background: #44300a; color: #fcd34d; }
+  .dark .status-posted { background: #064e3b; color: #6ee7b7; }
+  .dark .status-error { background: #450a0a; color: #fca5a5; }
+  .fade-in { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .preview-media { max-height: 60px; max-width: 90px; object-fit: cover; border-radius: 8px; }
+  .toast { position: fixed; bottom: 2rem; right: 2rem; z-index: 9999; padding: 14px 22px; border-radius: 12px; font-weight: 500; font-size: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); animation: fadeIn 0.3s ease; max-width: 340px; }
+  .toast-success { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+  .toast-error { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+  .dark .toast-success { background: #064e3b; color: #6ee7b7; border-color: #047857; }
+  .dark .toast-error { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
+  .tab-active { background: linear-gradient(135deg, #7c3aed22, #2563eb22); color: #7c3aed; border-bottom: 2px solid #7c3aed; }
+  .dark .tab-active { color: #a78bfa; border-bottom-color: #a78bfa; background: #1e1b4b44; }
+  input, textarea, select { outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+  input:focus, textarea:focus, select:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px #7c3aed22; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #a78bfa55; border-radius: 99px; }
+</style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-100 min-h-screen transition-colors duration-300">
+
+<!-- NAVBAR -->
+<nav class="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur border-b border-gray-200 dark:border-gray-800">
+  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg grad-btn flex items-center justify-center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="font-bold text-lg tracking-tight grad-text">AutoPost <span class="text-gray-400 dark:text-gray-500 font-normal">AI</span></span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="postCount" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-3 py-1.5 rounded-full">
+        <span class="w-1.5 h-1.5 bg-purple-500 rounded-full inline-block"></span>
+        <span id="countLabel">0 posts</span>
+      </span>
+      <button onclick="toggleDark()" id="darkToggle" class="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="Toggle dark mode">
+        <svg id="moonIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+        <svg id="sunIcon" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 text-white">
+  <div class="max-w-6xl mx-auto px-4 py-12 md:py-16 text-center">
+    <div class="inline-flex items-center gap-2 text-xs font-semibold bg-white/20 backdrop-blur px-4 py-1.5 rounded-full mb-4">
+      <span class="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></span>
+      AI-Powered · Instagram Automation
+    </div>
+    <h1 class="text-3xl md:text-5xl font-bold mb-3 leading-tight">Upload. Generate. Post.</h1>
+    <p class="text-white/75 text-base md:text-lg max-w-xl mx-auto">Automate your Instagram with AI-generated captions. Upload once, let AI do the rest.</p>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+  <!-- LEFT: UPLOAD FORM -->
+  <div class="lg:col-span-2 space-y-5">
+
+    <!-- Upload Card -->
+    <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+      <h2 class="font-semibold text-base mb-4 flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload Media
+      </h2>
+
+      <!-- Drop Zone -->
+      <div id="dropZone" class="drop-zone rounded-xl p-6 text-center cursor-pointer mb-4 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" onclick="document.getElementById('fileInput').click()">
+        <div id="dropDefault">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Drag & drop or <span class="text-purple-600 dark:text-purple-400">browse</span></p>
+          <p class="text-xs text-gray-400 dark:text-gray-600 mt-1">JPG, PNG, MP4, MOV — max 50MB</p>
+        </div>
+        <div id="dropPreview" class="hidden">
+          <img id="imgPreview" class="mx-auto max-h-36 rounded-lg object-contain" />
+          <video id="vidPreview" class="mx-auto max-h-36 rounded-lg hidden" controls muted></video>
+          <p id="previewName" class="text-xs text-gray-500 dark:text-gray-400 mt-2 truncate max-w-xs mx-auto"></p>
+          <button onclick="clearFile(event)" class="mt-2 text-xs text-red-400 hover:text-red-600 underline">Remove</button>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFile(this.files[0])"/>
+
+      <!-- Media Type -->
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Media Type</label>
+        <select id="mediaType" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2.5">
+          <option value="image">🖼️ Image</option>
+          <option value="video">🎥 Video</option>
+        </select>
+      </div>
+
+      <!-- Caption Idea -->
+      <div class="mb-5">
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Caption Idea <span class="text-gray-300 dark:text-gray-600">(optional)</span></label>
+        <textarea id="captionInput" rows="3" placeholder="Give AI a hint... e.g. 'morning coffee vibes'" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2.5 resize-none"></textarea>
+      </div>
+
+      <!-- Submit Button -->
+      <button onclick="handleSubmit()" id="submitBtn" class="grad-btn w-full text-white font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Upload & Post to Instagram
+      </button>
+
+      <p class="text-center text-xs text-gray-400 dark:text-gray-600 mt-3">AI will generate a caption and post automatically</p>
+    </div>
+
+    <!-- Stats Card -->
+    <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+      <h2 class="font-semibold text-base mb-4 text-gray-700 dark:text-gray-200">Quick Stats</h2>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="text-center bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+          <p class="text-2xl font-bold text-purple-600 dark:text-purple-400" id="statTotal">0</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total</p>
+        </div>
+        <div class="text-center bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+          <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="statPosted">0</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Posted</p>
+        </div>
+        <div class="text-center bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+          <p class="text-2xl font-bold text-amber-500 dark:text-amber-400" id="statPending">0</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Pending</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: DASHBOARD + AI CAPTIONS -->
+  <div class="lg:col-span-3 space-y-5">
+
+    <!-- AI Caption Preview -->
+    <div id="captionPreview" class="hidden card bg-white dark:bg-gray-900 rounded-2xl border border-purple-200 dark:border-purple-900 p-5 shadow-sm fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-base flex items-center gap-2">
+          <div class="w-6 h-6 rounded-md grad-btn flex items-center justify-center">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          AI Caption Preview
+        </h2>
+        <span class="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/40 px-2.5 py-1 rounded-full">Generated</span>
+      </div>
+      <div class="space-y-3">
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-4">
+          <p class="text-xs font-semibold text-blue-500 mb-1.5 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Image Caption
+          </p>
+          <p id="imgCaption" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed"></p>
+        </div>
+        <div class="bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-900/50 rounded-xl p-4">
+          <p class="text-xs font-semibold text-violet-500 mb-1.5 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Video Caption
+          </p>
+          <p id="vidCaption" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Posts Dashboard -->
+    <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+        <h2 class="font-semibold text-base flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-500"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Post Dashboard
+        </h2>
+        <div class="flex items-center gap-2">
+          <select id="filterSelect" onchange="renderTable()" class="text-xs border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1.5">
+            <option value="all">All Posts</option>
+            <option value="pending">Pending</option>
+            <option value="posted">Posted</option>
+            <option value="error">Error</option>
+          </select>
+          <button onclick="clearAll()" class="text-xs text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">Clear</button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="py-16 text-center">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <p class="text-gray-400 dark:text-gray-600 text-sm font-medium">No posts yet</p>
+        <p class="text-gray-300 dark:text-gray-700 text-xs mt-1">Upload your first media to get started</p>
+      </div>
+
+      <!-- Table -->
+      <div id="tableWrap" class="hidden overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+              <th class="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-4 py-3 w-10">#</th>
+              <th class="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-4 py-3">Preview</th>
+              <th class="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-4 py-3">File Name</th>
+              <th class="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-4 py-3">Caption</th>
+              <th class="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-4 py-3">Status</th>
+              <th class="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-4 py-3">Time</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+      <h2 class="font-semibold text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">How it works</h2>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="text-center">
+          <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">1. Upload</p>
+          <p class="text-xs text-gray-400 mt-0.5">Drop your image or video</p>
+        </div>
+        <div class="text-center">
+          <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">2. AI Writes</p>
+          <p class="text-xs text-gray-400 mt-0.5">Caption generated instantly</p>
+        </div>
+        <div class="text-center">
+          <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">3. Auto Post</p>
+          <p class="text-xs text-gray-400 mt-0.5">Goes live on Instagram</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const WEBHOOK_URL = "https://n8n-etotgzlb.ap-southeast-1.clawcloudrun.com/webhook/97014115-08b8-4771-b9a2-c27ca7d10c58";
+
+let posts = JSON.parse(localStorage.getItem('autopost_posts') || '[]');
+let currentFile = null;
+let isDark = localStorage.getItem('autopost_dark') === 'true';
+
+const sampleCaptions = {
+  image: [
+    "✨ Capturing moments that last forever. Life is beautiful when you take a second to notice. #aesthetic #vibes #photography",
+    "🌅 Golden hour hits different. Some moments are just meant to be shared. #goldenhour #lifestyle #instagood",
+    "🎯 Every picture tells a story. This one? Pure magic. #content #creative #photooftheday"
+  ],
+  video: [
+    "🎬 Swipe to see the full story — this one has layers! Drop a ❤️ if this resonates. #reels #viral #trendy",
+    "📱 Behind every great moment is a story worth telling. Watch till the end! #video #explore #instagramreels",
+    "🔥 They said it couldn't be done. We did it anyway. Full video now live! #motivation #content #creator"
+  ]
+};
+
+function toggleDark() {
+  isDark = !isDark;
+  localStorage.setItem('autopost_dark', isDark);
+  applyDark();
+}
+function applyDark() {
+  document.documentElement.classList.toggle('dark', isDark);
+  document.getElementById('moonIcon').classList.toggle('hidden', isDark);
+  document.getElementById('sunIcon').classList.toggle('hidden', !isDark);
+}
+applyDark();
+
+function handleFile(file) {
+  if (!file) return;
+  currentFile = file;
+  const isVideo = file.type.startsWith('video');
+  document.getElementById('mediaType').value = isVideo ? 'video' : 'image';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    document.getElementById('dropDefault').classList.add('hidden');
+    document.getElementById('dropPreview').classList.remove('hidden');
+    const img = document.getElementById('imgPreview');
+    const vid = document.getElementById('vidPreview');
+    if (isVideo) {
+      img.classList.add('hidden');
+      vid.classList.remove('hidden');
+      vid.src = url;
+    } else {
+      vid.classList.add('hidden');
+      img.classList.remove('hidden');
+      img.src = url;
+    }
+    document.getElementById('previewName').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearFile(e) {
+  e.stopPropagation();
+  currentFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('dropDefault').classList.remove('hidden');
+  document.getElementById('dropPreview').classList.add('hidden');
+  document.getElementById('imgPreview').src = '';
+  document.getElementById('vidPreview').src = '';
+}
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+async function handleSubmit() {
+  if (!currentFile) { showToast('Please select a file first.', 'error'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<span class="spinner"></span> Processing...';
+  btn.disabled = true;
+
+  const mediaType = document.getElementById('mediaType').value;
+  const captionIdea = document.getElementById('captionInput').value.trim();
+  const fileName = currentFile.name;
+
+  const post = {
+    id: Date.now(),
+    name: fileName,
+    type: mediaType,
+    caption: '',
+    status: 'pending',
+    time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+    preview: null
+  };
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    post.preview = e.target.result;
+    posts.unshift(post);
+    saveAndRender();
+
+    await new Promise(r => setTimeout(r, 1200));
+
+    const captions = sampleCaptions[mediaType];
+    const generated = captions[Math.floor(Math.random() * captions.length)];
+    const finalCaption = captionIdea
+      ? `${captionIdea} ✨ ${generated.split(' ').slice(3).join(' ')}`
+      : generated;
+
+    post.caption = finalCaption;
+    showCaptionPreview(mediaType, finalCaption);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', currentFile);
+      formData.append('caption', finalCaption);
+      formData.append('mediaType', mediaType);
+      formData.append('captionIdea', captionIdea);
+
+      const res = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Webhook error');
+      post.status = 'posted';
+      showToast('Uploaded successfully ✅ Your post is live on Instagram!', 'success');
+    } catch (err) {
+      post.status = 'error';
+      showToast('Webhook not configured. Post saved as pending.', 'error');
+    }
+
+    saveAndRender();
+    resetForm();
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Upload & Post to Instagram';
+    btn.disabled = false;
+  };
+  reader.readAsDataURL(currentFile);
+}
+
+function showCaptionPreview(type, caption) {
+  const panel = document.getElementById('captionPreview');
+  panel.classList.remove('hidden');
+  panel.classList.add('fade-in');
+
+  const imgParts = caption.split('. ');
+  document.getElementById('imgCaption').textContent = imgParts[0] + (imgParts[1] ? '.' : '');
+  document.getElementById('vidCaption').textContent = `🎬 ${caption}`;
+}
+
+function resetForm() {
+  clearFile(new Event('click'));
+  document.getElementById('captionInput').value = '';
+  document.getElementById('fileInput').value = '';
+}
+
+function saveAndRender() {
+  localStorage.setItem('autopost_posts', JSON.stringify(posts));
+  renderTable();
+  updateStats();
+}
+
+function renderTable() {
+  const filter = document.getElementById('filterSelect').value;
+  const filtered = filter === 'all' ? posts : posts.filter(p => p.status === filter);
+
+  const empty = document.getElementById('emptyState');
+  const wrap = document.getElementById('tableWrap');
+  const body = document.getElementById('tableBody');
+
+  if (filtered.length === 0) {
+    empty.classList.remove('hidden');
+    wrap.classList.add('hidden');
+    document.getElementById('postCount').classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  wrap.classList.remove('hidden');
+  document.getElementById('postCount').classList.remove('hidden');
+  document.getElementById('countLabel').textContent = `${posts.length} post${posts.length !== 1 ? 's' : ''}`;
+
+  body.innerHTML = filtered.map((p, i) => {
+    const badgeClass = p.status === 'posted' ? 'status-posted' : p.status === 'error' ? 'status-error' : 'status-pending';
+    const badgeLabel = p.status === 'posted' ? '✓ Posted' : p.status === 'error' ? '✕ Error' : '⏳ Pending';
+    const mediaEl = p.preview
+      ? (p.type === 'video'
+        ? `<video src="${p.preview}" class="preview-media"></video>`
+        : `<img src="${p.preview}" class="preview-media" />`)
+      : `<div class="w-16 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-300 text-xs">No preview</div>`;
+    return `<tr class="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors fade-in">
+      <td class="px-4 py-3 text-xs text-gray-400">${filtered.length - i}</td>
+      <td class="px-4 py-3">${mediaEl}</td>
+      <td class="px-4 py-3 max-w-[120px]"><p class="text-xs font-medium truncate text-gray-700 dark:text-gray-300">${p.name}</p><p class="text-xs text-gray-400 mt-0.5 capitalize">${p.type}</p></td>
+      <td class="px-4 py-3 max-w-[160px]"><p class="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">${p.caption || '<span class="text-gray-300 italic">Generating...</span>'}</p></td>
+      <td class="px-4 py-3"><span class="status-badge ${badgeClass}">${badgeLabel}</span></td>
+      <td class="px-4 py-3 text-xs text-gray-400">${p.time}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = posts.length;
+  document.getElementById('statPosted').textContent = posts.filter(p => p.status === 'posted').length;
+  document.getElementById('statPending').textContent = posts.filter(p => p.status === 'pending').length;
+}
+
+function clearAll() {
+  if (posts.length === 0) return;
+  if (!confirm('Clear all posts?')) return;
+  posts = [];
+  saveAndRender();
+  document.getElementById('captionPreview').classList.add('hidden');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast toast-${type}`;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 4500);
+}
+
+renderTable();
+updateStats();
+</script>
+</body>
+</html>
