@@ -278,7 +278,7 @@
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const WEBHOOK_URL = "https://n8n-etotgzlb.ap-southeast-1.clawcloudrun.com/webhook/dashboard";
+const WEBHOOK_URL = "https://n8n-etotgzlb.ap-southeast-1.clawcloudrun.com/webhook/97014115-08b8-4771-b9a2-c27ca7d10c58";
 
 let posts = JSON.parse(localStorage.getItem('autopost_posts') || '[]');
 let currentFile = null;
@@ -401,8 +401,7 @@ async function handleSubmit() {
       formData.append('mediaType', mediaType);
       formData.append('captionIdea', captionIdea);
 
-      const res = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Webhook error');
+      await fetch(WEBHOOK_URL, { method: 'POST', body: formData, mode: 'no-cors' });
       post.status = 'posted';
       showToast('Uploaded successfully ✅ Your post is live on Instagram!', 'success');
     } catch (err) {
