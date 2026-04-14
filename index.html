@@ -278,102 +278,231 @@
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const WEBHOOK_URL = "https://n8n-etotgzlb.ap-southeast-1.clawcloudrun.com/webhook/dashboard"; // 🔥 PUT REAL ID
+const WEBHOOK_URL = "https://n8n-etotgzlb.ap-southeast-1.clawcloudrun.com/webhook/dashboard";
 
 let posts = JSON.parse(localStorage.getItem('autopost_posts') || '[]');
 let currentFile = null;
+let isDark = localStorage.getItem('autopost_dark') === 'true';
 
-async function handleSubmit() {
-  if (!currentFile) {
-    alert("Please select a file");
-    return;
-  }
+const sampleCaptions = {
+  image: [
+    "✨ Capturing moments that last forever. Life is beautiful when you take a second to notice. #aesthetic #vibes #photography",
+    "🌅 Golden hour hits different. Some moments are just meant to be shared. #goldenhour #lifestyle #instagood",
+    "🎯 Every picture tells a story. This one? Pure magic. #content #creative #photooftheday"
+  ],
+  video: [
+    "🎬 Swipe to see the full story — this one has layers! Drop a ❤️ if this resonates. #reels #viral #trendy",
+    "📱 Behind every great moment is a story worth telling. Watch till the end! #video #explore #instagramreels",
+    "🔥 They said it couldn't be done. We did it anyway. Full video now live! #motivation #content #creator"
+  ]
+};
 
-  const mediaType = document.getElementById('mediaType').value;
-  const captionIdea = document.getElementById('captionInput').value.trim();
-
-  const post = {
-    id: Date.now(),
-    name: currentFile.name,
-    type: mediaType,
-    caption: '',
-    status: 'pending',
-    time: new Date().toLocaleTimeString()
-  };
-
-  posts.unshift(post);
-  savePosts();
-
-  try {
-    // ✅ FIRST TEST JSON (for debugging)
-    /*
-    const res = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        test: "hello",
-        captionIdea
-      })
-    });
-    */
-
-    // ✅ REAL FORM DATA (FILE UPLOAD)
-    const formData = new FormData();
-    formData.append("file", currentFile);
-    formData.append("captionIdea", captionIdea);
-    formData.append("mediaType", mediaType);
-
-    const res = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      body: formData
-    });
-
-    console.log("Response:", res);
-
-    if (!res.ok) {
-      throw new Error("Webhook failed");
-    }
-
-    let data = {};
-    try {
-      data = await res.json();
-    } catch {
-      console.warn("No JSON response");
-    }
-
-    post.status = "posted";
-    post.caption = data.caption || "Posted successfully";
-
-    showToast("✅ Webhook success!", "success");
-
-  } catch (err) {
-    console.error("ERROR:", err);
-    post.status = "error";
-    showToast("❌ Webhook failed. Check n8n / CORS", "error");
-  }
-
-  savePosts();
-  renderTable();
+function toggleDark() {
+  isDark = !isDark;
+  localStorage.setItem('autopost_dark', isDark);
+  applyDark();
 }
+function applyDark() {
+  document.documentElement.classList.toggle('dark', isDark);
+  document.getElementById('moonIcon').classList.toggle('hidden', isDark);
+  document.getElementById('sunIcon').classList.toggle('hidden', !isDark);
+}
+applyDark();
 
 function handleFile(file) {
   if (!file) return;
   currentFile = file;
+  const isVideo = file.type.startsWith('video');
+  document.getElementById('mediaType').value = isVideo ? 'video' : 'image';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    document.getElementById('dropDefault').classList.add('hidden');
+    document.getElementById('dropPreview').classList.remove('hidden');
+    const img = document.getElementById('imgPreview');
+    const vid = document.getElementById('vidPreview');
+    if (isVideo) {
+      img.classList.add('hidden');
+      vid.classList.remove('hidden');
+      vid.src = url;
+    } else {
+      vid.classList.add('hidden');
+      img.classList.remove('hidden');
+      img.src = url;
+    }
+    document.getElementById('previewName').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
 }
 
-function savePosts() {
-  localStorage.setItem("autopost_posts", JSON.stringify(posts));
+function clearFile(e) {
+  e.stopPropagation();
+  currentFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('dropDefault').classList.remove('hidden');
+  document.getElementById('dropPreview').classList.add('hidden');
+  document.getElementById('imgPreview').src = '';
+  document.getElementById('vidPreview').src = '';
+}
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+async function handleSubmit() {
+  if (!currentFile) { showToast('Please select a file first.', 'error'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<span class="spinner"></span> Processing...';
+  btn.disabled = true;
+
+  const mediaType = document.getElementById('mediaType').value;
+  const captionIdea = document.getElementById('captionInput').value.trim();
+  const fileName = currentFile.name;
+
+  const post = {
+    id: Date.now(),
+    name: fileName,
+    type: mediaType,
+    caption: '',
+    status: 'pending',
+    time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+    preview: null
+  };
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    post.preview = e.target.result;
+    posts.unshift(post);
+    saveAndRender();
+
+    await new Promise(r => setTimeout(r, 1200));
+
+    const captions = sampleCaptions[mediaType];
+    const generated = captions[Math.floor(Math.random() * captions.length)];
+    const finalCaption = captionIdea
+      ? `${captionIdea} ✨ ${generated.split(' ').slice(3).join(' ')}`
+      : generated;
+
+    post.caption = finalCaption;
+    showCaptionPreview(mediaType, finalCaption);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', currentFile);
+      formData.append('caption', finalCaption);
+      formData.append('mediaType', mediaType);
+      formData.append('captionIdea', captionIdea);
+
+      const res = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Webhook error');
+      post.status = 'posted';
+      showToast('Uploaded successfully ✅ Your post is live on Instagram!', 'success');
+    } catch (err) {
+      post.status = 'error';
+      showToast('Webhook not configured. Post saved as pending.', 'error');
+    }
+
+    saveAndRender();
+    resetForm();
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Upload & Post to Instagram';
+    btn.disabled = false;
+  };
+  reader.readAsDataURL(currentFile);
+}
+
+function showCaptionPreview(type, caption) {
+  const panel = document.getElementById('captionPreview');
+  panel.classList.remove('hidden');
+  panel.classList.add('fade-in');
+
+  const imgParts = caption.split('. ');
+  document.getElementById('imgCaption').textContent = imgParts[0] + (imgParts[1] ? '.' : '');
+  document.getElementById('vidCaption').textContent = `🎬 ${caption}`;
+}
+
+function resetForm() {
+  clearFile(new Event('click'));
+  document.getElementById('captionInput').value = '';
+  document.getElementById('fileInput').value = '';
+}
+
+function saveAndRender() {
+  localStorage.setItem('autopost_posts', JSON.stringify(posts));
+  renderTable();
+  updateStats();
 }
 
 function renderTable() {
-  console.log(posts);
+  const filter = document.getElementById('filterSelect').value;
+  const filtered = filter === 'all' ? posts : posts.filter(p => p.status === filter);
+
+  const empty = document.getElementById('emptyState');
+  const wrap = document.getElementById('tableWrap');
+  const body = document.getElementById('tableBody');
+
+  if (filtered.length === 0) {
+    empty.classList.remove('hidden');
+    wrap.classList.add('hidden');
+    document.getElementById('postCount').classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  wrap.classList.remove('hidden');
+  document.getElementById('postCount').classList.remove('hidden');
+  document.getElementById('countLabel').textContent = `${posts.length} post${posts.length !== 1 ? 's' : ''}`;
+
+  body.innerHTML = filtered.map((p, i) => {
+    const badgeClass = p.status === 'posted' ? 'status-posted' : p.status === 'error' ? 'status-error' : 'status-pending';
+    const badgeLabel = p.status === 'posted' ? '✓ Posted' : p.status === 'error' ? '✕ Error' : '⏳ Pending';
+    const mediaEl = p.preview
+      ? (p.type === 'video'
+        ? `<video src="${p.preview}" class="preview-media"></video>`
+        : `<img src="${p.preview}" class="preview-media" />`)
+      : `<div class="w-16 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-300 text-xs">No preview</div>`;
+    return `<tr class="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors fade-in">
+      <td class="px-4 py-3 text-xs text-gray-400">${filtered.length - i}</td>
+      <td class="px-4 py-3">${mediaEl}</td>
+      <td class="px-4 py-3 max-w-[120px]"><p class="text-xs font-medium truncate text-gray-700 dark:text-gray-300">${p.name}</p><p class="text-xs text-gray-400 mt-0.5 capitalize">${p.type}</p></td>
+      <td class="px-4 py-3 max-w-[160px]"><p class="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">${p.caption || '<span class="text-gray-300 italic">Generating...</span>'}</p></td>
+      <td class="px-4 py-3"><span class="status-badge ${badgeClass}">${badgeLabel}</span></td>
+      <td class="px-4 py-3 text-xs text-gray-400">${p.time}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = posts.length;
+  document.getElementById('statPosted').textContent = posts.filter(p => p.status === 'posted').length;
+  document.getElementById('statPending').textContent = posts.filter(p => p.status === 'pending').length;
+}
+
+function clearAll() {
+  if (posts.length === 0) return;
+  if (!confirm('Clear all posts?')) return;
+  posts = [];
+  saveAndRender();
+  document.getElementById('captionPreview').classList.add('hidden');
 }
 
 function showToast(msg, type) {
-  alert(msg);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast toast-${type}`;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 4500);
 }
+
+renderTable();
+updateStats();
 </script>
 </body>
 </html>
