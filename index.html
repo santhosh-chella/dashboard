@@ -1,391 +1,860 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>AutoPost AI — Instagram Automation</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
-  :root { --accent-from: #7c3aed; --accent-to: #2563eb; }
-  * { box-sizing: border-box; }
-  body { font-family: 'Inter', system-ui, sans-serif; }
-  .grad-btn {
-    background: linear-gradient(135deg, #7c3aed, #2563eb);
-    transition: opacity 0.2s, transform 0.15s;
-  }
-  .grad-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-  .grad-btn:active { transform: scale(0.98); }
-  .grad-text {
-    background: linear-gradient(135deg, #7c3aed, #2563eb);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .drop-zone { border: 2px dashed #a78bfa; transition: all 0.2s; }
-  .drop-zone.drag-over { border-color: #7c3aed; background: #f5f3ff; }
-  .dark .drop-zone.drag-over { background: #1e1b4b; }
-  .card { transition: box-shadow 0.2s; }
-  .card:hover { box-shadow: 0 8px 32px 0 rgba(124,58,237,0.10); }
-  .spinner {
-    width: 18px; height: 18px; border: 2.5px solid #fff4;
-    border-top-color: #fff; border-radius: 50%;
-    animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
-  .status-pending   { background: #fef3c7; color: #92400e; }
-  .status-posted    { background: #d1fae5; color: #065f46; }
-  .status-error     { background: #fee2e2; color: #991b1b; }
-  .status-scheduled { background: #dbeafe; color: #1e40af; }
-  .dark .status-pending   { background: #44300a; color: #fcd34d; }
-  .dark .status-posted    { background: #064e3b; color: #6ee7b7; }
-  .dark .status-error     { background: #450a0a; color: #fca5a5; }
-  .dark .status-scheduled { background: #1e3a5f; color: #93c5fd; }
-  .fade-in { animation: fadeIn 0.4s ease; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  .preview-media { max-height: 56px; max-width: 80px; object-fit: cover; border-radius: 7px; }
-  .toast { position: fixed; bottom: 2rem; right: 2rem; z-index: 9999; padding: 14px 22px; border-radius: 12px; font-weight: 500; font-size: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); animation: fadeIn 0.3s ease; max-width: 340px; }
-  .toast-success { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
-  .toast-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
-  .toast-info    { background: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; }
-  .dark .toast-success { background: #064e3b; color: #6ee7b7; border-color: #047857; }
-  .dark .toast-error   { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
-  .dark .toast-info    { background: #1e3a5f; color: #93c5fd; border-color: #1e40af; }
-  input, textarea, select { outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-  input:focus, textarea:focus, select:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px #7c3aed22; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #a78bfa55; border-radius: 99px; }
-  .progress-bar { height: 4px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg,#7c3aed,#2563eb); border-radius: 99px; transition: width 0.3s; }
-  .bulk-item { display: flex; align-items: center; gap:10px; padding: 8px 10px; border-radius: 10px; background: #f9fafb; }
-  .dark .bulk-item { background: #1f2937; }
-  .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: all 0.15s; color: #6b7280; }
-  .tab-btn.active { background: linear-gradient(135deg,#7c3aed22,#2563eb22); color: #7c3aed; }
-  .dark .tab-btn { color: #9ca3af; }
-  .dark .tab-btn.active { color: #a78bfa; background: #1e1b4b44; }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-  .modal { background: white; border-radius: 20px; padding: 24px; max-width: 480px; width: 92%; max-height: 90vh; overflow-y: auto; }
-  .dark .modal { background: #111827; }
-  .char-count { font-size: 11px; color: #9ca3af; }
-  .char-count.warn { color: #f59e0b; }
-  .char-count.over { color: #ef4444; }
-  .hashtag-chip { display: inline-flex; align-items: center; gap: 4px; background: #ede9fe; color: #7c3aed; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; cursor: pointer; }
-  .dark .hashtag-chip { background: #2e1065; color: #c4b5fd; }
-  .hashtag-chip:hover { background: #ddd6fe; }
-  .dark .hashtag-chip:hover { background: #3b1a7a; }
+:root {
+  --p50:#faf7ff; --p100:#f0e9ff; --p200:#ddd0ff; --p300:#c4aeff;
+  --p400:#a47bff; --p500:#8b5cf6; --p600:#7c3aed; --p700:#6d28d9;
+  --p800:#5b21b6; --p900:#4c1d95;
+  --white:#ffffff; --off-white:#fdfcff;
+  --gray50:#f8f7fc; --gray100:#eeeaf7; --gray200:#d8d2ec;
+  --gray400:#9d94bb; --gray600:#5c5478; --gray800:#2d2645;
+  --shadow-sm:0 1px 3px rgba(76,29,149,.06), 0 1px 2px rgba(76,29,149,.04);
+  --shadow-md:0 4px 16px rgba(76,29,149,.10), 0 2px 6px rgba(76,29,149,.06);
+  --shadow-lg:0 12px 40px rgba(76,29,149,.14), 0 4px 16px rgba(76,29,149,.08);
+  --shadow-glow:0 0 0 3px rgba(139,92,246,.15);
+  --radius-sm:8px; --radius-md:12px; --radius-lg:18px; --radius-xl:24px;
+  --font-display:'Playfair Display',serif;
+  --font-body:'DM Sans',sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--off-white);color:var(--gray800);min-height:100vh;overflow-x:hidden}
+
+/* ─── DECORATIVE BG ─── */
+body::before{
+  content:'';position:fixed;top:-200px;right:-200px;
+  width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(196,174,255,.18) 0%,transparent 70%);
+  pointer-events:none;z-index:0
+}
+body::after{
+  content:'';position:fixed;bottom:-150px;left:-150px;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(139,92,246,.10) 0%,transparent 70%);
+  pointer-events:none;z-index:0
+}
+
+/* ─── NAVBAR ─── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,.88);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(196,174,255,.3);
+  box-shadow:0 1px 20px rgba(76,29,149,.06)
+}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,var(--p600),var(--p400));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(124,58,237,.35)
+}
+.brand-name{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--p700);letter-spacing:-.3px}
+.brand-name em{font-style:normal;color:var(--gray400);font-family:var(--font-body);font-weight:300;font-size:14px;margin-left:2px}
+.nav-actions{display:flex;align-items:center;gap:10px}
+.nav-pill{
+  display:inline-flex;align-items:center;gap:6px;padding:7px 16px;
+  border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;
+  transition:all .18s;border:1px solid transparent;background:none;font-family:var(--font-body)
+}
+.nav-pill.purple{background:var(--p50);border-color:var(--p200);color:var(--p700)}
+.nav-pill.purple:hover{background:var(--p100);border-color:var(--p300)}
+.nav-pill.outline{border-color:var(--gray200);color:var(--gray600)}
+.nav-pill.outline:hover{background:var(--gray50);border-color:var(--gray400)}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--p400);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+
+/* ─── HERO ─── */
+.hero{
+  position:relative;z-index:1;overflow:hidden;
+  background:linear-gradient(145deg,var(--p900) 0%,var(--p700) 45%,var(--p500) 100%);
+  padding:60px 28px 80px
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Ccircle cx='40' cy='40' r='1.5' fill='rgba(255,255,255,0.07)'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events:none
+}
+.hero-ring{
+  position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.08);
+  top:50%;left:50%;transform:translate(-50%,-50%)
+}
+.hero-content{max-width:1200px;margin:0 auto;text-align:center;position:relative;z-index:2}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.12);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:99px;padding:7px 18px;margin-bottom:24px;
+  font-size:12px;font-weight:500;color:rgba(255,255,255,.9);letter-spacing:.4px
+}
+.hero h1{
+  font-family:var(--font-display);font-size:clamp(36px,5vw,64px);
+  font-weight:700;color:#fff;line-height:1.1;margin-bottom:16px;
+  text-shadow:0 2px 20px rgba(0,0,0,.2)
+}
+.hero h1 span{
+  background:linear-gradient(135deg,#e9d5ff,#c4b5fd);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+}
+.hero-sub{color:rgba(255,255,255,.7);font-size:17px;font-weight:300;max-width:520px;margin:0 auto 32px;line-height:1.6}
+.hero-stats{display:flex;justify-content:center;gap:40px;flex-wrap:wrap}
+.hero-stat{text-align:center}
+.hero-stat-num{font-family:var(--font-display);font-size:28px;font-weight:700;color:#fff}
+.hero-stat-label{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px;font-weight:400}
+
+/* ─── TABS ─── */
+.tab-bar{background:var(--white);border-bottom:1px solid rgba(196,174,255,.25);position:sticky;top:68px;z-index:90}
+.tab-bar-inner{max-width:1200px;margin:0 auto;padding:0 28px;display:flex;gap:4px;align-items:center}
+.tab-btn{
+  padding:16px 20px;font-size:13px;font-weight:500;cursor:pointer;
+  border:none;background:none;font-family:var(--font-body);color:var(--gray400);
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .18s;
+  display:flex;align-items:center;gap:7px
+}
+.tab-btn:hover{color:var(--p600)}
+.tab-btn.active{color:var(--p700);border-bottom-color:var(--p600);font-weight:600}
+.tab-badge{font-size:10px;background:var(--p100);color:var(--p700);padding:2px 7px;border-radius:99px;font-weight:600}
+
+/* ─── LAYOUT ─── */
+.main{max-width:1200px;margin:0 auto;padding:32px 28px;display:grid;grid-template-columns:1fr 1.7fr;gap:24px;position:relative;z-index:1}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+
+/* ─── CARDS ─── */
+.card{
+  background:var(--white);border:1px solid rgba(196,174,255,.25);
+  border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);
+  transition:box-shadow .2s
+}
+.card:hover{box-shadow:var(--shadow-md)}
+.card-header{
+  padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px
+}
+.card-title{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--gray800);display:flex;align-items:center;gap:9px}
+.card-title .icon-wrap{
+  width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,var(--p100),var(--p50));
+  border:1px solid var(--p200);
+  display:flex;align-items:center;justify-content:center
+}
+.card-body{padding:0 24px 24px}
+
+/* ─── DROP ZONE ─── */
+.drop-zone{
+  border:2px dashed var(--p300);border-radius:var(--radius-lg);
+  padding:32px 20px;text-align:center;cursor:pointer;
+  background:var(--p50);transition:all .2s;margin-bottom:20px
+}
+.drop-zone:hover,.drop-zone.drag-over{
+  border-color:var(--p500);background:var(--p100);
+  box-shadow:var(--shadow-glow)
+}
+.drop-icon{
+  width:52px;height:52px;border-radius:var(--radius-md);
+  background:linear-gradient(135deg,var(--p200),var(--p100));
+  border:1px solid var(--p300);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px
+}
+.drop-zone p.main-text{font-size:14px;font-weight:500;color:var(--gray600)}
+.drop-zone p.main-text span{color:var(--p600);font-weight:600}
+.drop-zone p.sub-text{font-size:12px;color:var(--gray400);margin-top:4px}
+
+/* ─── POST TYPE SELECTOR ─── */
+.post-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.type-btn{
+  border:1.5px solid var(--gray200);border-radius:var(--radius-md);
+  padding:12px 6px;cursor:pointer;text-align:center;background:var(--white);
+  transition:all .18s;font-family:var(--font-body)
+}
+.type-btn:hover{border-color:var(--p300);background:var(--p50)}
+.type-btn.active{border:2px solid var(--p500);background:linear-gradient(135deg,var(--p50),var(--p100));box-shadow:var(--shadow-glow)}
+.type-btn .t-icon{font-size:20px;margin-bottom:5px}
+.type-btn .t-name{font-size:11px;font-weight:600;color:var(--gray600)}
+.type-btn .t-sub{font-size:10px;color:var(--gray400);margin-top:2px}
+.type-btn.active .t-name{color:var(--p700)}
+.type-btn.active .t-sub{color:var(--p500)}
+
+/* ─── CAROUSEL PANEL ─── */
+.carousel-panel{display:none;margin-bottom:20px}
+.carousel-panel.visible{display:block}
+.carousel-drop{
+  border:2px dashed var(--p300);border-radius:var(--radius-md);
+  padding:22px;text-align:center;cursor:pointer;background:var(--p50);
+  transition:all .2s;margin-bottom:12px
+}
+.carousel-drop:hover{border-color:var(--p500);background:var(--p100)}
+.carousel-drop p{font-size:13px;color:var(--gray600)}
+.carousel-drop span{color:var(--p600);font-weight:600}
+.carousel-img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;margin-bottom:10px}
+.c-thumb{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--p50);border:1px solid var(--p200)}
+.c-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.c-thumb .order-badge{
+  position:absolute;top:5px;left:5px;
+  background:var(--p600);color:#fff;
+  font-size:9px;font-weight:700;
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center
+}
+.c-thumb .rm-btn{
+  position:absolute;top:5px;right:5px;
+  background:rgba(0,0,0,.5);color:#fff;
+  font-size:11px;width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:none;line-height:1;transition:background .15s
+}
+.c-thumb .rm-btn:hover{background:#dc2626}
+.c-thumb.add-slot{
+  border:2px dashed var(--p300);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--p400);background:var(--p50);
+  font-family:var(--font-body);font-weight:300
+}
+.c-thumb.add-slot:hover{border-color:var(--p500);color:var(--p600);background:var(--p100)}
+.c-thumb.drag-over-slot{outline:2px dashed var(--p500);outline-offset:2px}
+.carousel-info{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.carousel-info .count{font-size:12px;color:var(--gray600)}
+.carousel-info .count strong{color:var(--p700)}
+.carousel-info .add-more-btn{font-size:12px;color:var(--p600);background:none;border:none;cursor:pointer;font-family:var(--font-body);font-weight:600}
+.reorder-note{font-size:11px;color:var(--gray400);display:flex;align-items:center;gap:4px;margin-top:4px}
+.limit-warn{
+  background:#fefce8;border:1px solid #fde68a;border-radius:var(--radius-sm);
+  padding:8px 12px;font-size:12px;color:#92400e;margin-top:8px;display:none
+}
+.limit-warn.show{display:block}
+
+/* ─── FORM CONTROLS ─── */
+.form-group{margin-bottom:16px}
+.form-label{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;font-weight:600;color:var(--gray600);
+  letter-spacing:.3px;margin-bottom:7px;text-transform:uppercase
+}
+.form-label .opt{font-weight:400;color:var(--gray400);text-transform:none;letter-spacing:0;font-size:11px}
+select,input[type=text],input[type=url],input[type=datetime-local],textarea{
+  width:100%;border:1.5px solid var(--gray200);border-radius:var(--radius-sm);
+  background:var(--white);color:var(--gray800);font-family:var(--font-body);
+  font-size:13px;padding:10px 14px;outline:none;transition:all .18s;appearance:none
+}
+select:focus,input:focus,textarea:focus{border-color:var(--p500);box-shadow:var(--shadow-glow)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239d94bb' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+textarea{resize:none;line-height:1.6}
+
+/* ─── CHAR COUNT ─── */
+.char-count{font-size:11px;color:var(--gray400);font-weight:400}
+.char-count.warn{color:#d97706}
+.char-count.over{color:#dc2626}
+
+/* ─── HASHTAG CHIPS ─── */
+.hashtag-area{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}
+.htag{
+  display:inline-flex;align-items:center;gap:3px;
+  background:var(--p100);color:var(--p700);border:1px solid var(--p200);
+  font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;cursor:pointer;transition:all .15s
+}
+.htag:hover,.htag.selected{background:var(--p600);color:#fff;border-color:var(--p600)}
+.htag.deselected{opacity:.4}
+.htag-placeholder{font-size:12px;color:var(--gray400);font-style:italic}
+.htag-actions{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.htag-generate-btn{font-size:12px;color:var(--p600);background:none;border:none;cursor:pointer;font-family:var(--font-body);font-weight:600}
+.htag-generate-btn:hover{color:var(--p700)}
+
+/* ─── SCHEDULE TOGGLE ─── */
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--p50);border:1px solid var(--p100);border-radius:var(--radius-md);
+  padding:14px 16px;margin-bottom:12px
+}
+.toggle-label p{font-size:13px;font-weight:500;color:var(--gray700)}
+.toggle-label small{font-size:11px;color:var(--gray400)}
+.toggle{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+.toggle input{position:absolute;opacity:0;width:0;height:0}
+.toggle-track{
+  width:38px;height:22px;background:var(--gray200);border-radius:99px;
+  transition:background .2s;position:relative
+}
+.toggle input:checked + .toggle-track{background:var(--p500)}
+.toggle-thumb{
+  position:absolute;top:3px;left:3px;width:16px;height:16px;
+  background:#fff;border-radius:50%;transition:transform .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.2)
+}
+.toggle input:checked ~ .toggle-thumb{transform:translateX(16px)}
+
+/* ─── SUBMIT BUTTON ─── */
+.submit-btn{
+  width:100%;padding:15px;border:none;border-radius:var(--radius-md);
+  background:linear-gradient(135deg,var(--p700),var(--p500));
+  color:#fff;font-family:var(--font-display);font-size:15px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:all .2s;letter-spacing:.2px;
+  box-shadow:0 4px 18px rgba(124,58,237,.35)
+}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(124,58,237,.45)}
+.submit-btn:active{transform:scale(.98)}
+.submit-btn:disabled{opacity:.65;cursor:not-allowed;transform:none}
+.submit-note{text-align:center;font-size:11px;color:var(--gray400);margin-top:10px}
+
+/* ─── PROGRESS ─── */
+.progress-wrap{margin-bottom:14px;display:none}
+.progress-top{display:flex;justify-content:space-between;font-size:12px;color:var(--gray600);margin-bottom:6px}
+.progress-bar{height:6px;background:var(--p100);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--p700),var(--p400));border-radius:99px;transition:width .3s;width:0%}
+
+/* ─── STATS ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat-card{
+  background:linear-gradient(135deg,var(--p50),var(--white));
+  border:1px solid var(--p100);border-radius:var(--radius-md);
+  padding:14px 10px;text-align:center
+}
+.stat-num{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1}
+.stat-num.purple{color:var(--p600)}
+.stat-num.green{color:#059669}
+.stat-num.amber{color:#d97706}
+.stat-num.blue{color:#2563eb}
+.stat-label{font-size:11px;color:var(--gray400);margin-top:4px;font-weight:500}
+
+/* ─── AI CAPTION PREVIEW ─── */
+.caption-preview{
+  background:linear-gradient(135deg,var(--p50),var(--white));
+  border:1px solid var(--p200);border-radius:var(--radius-xl);
+  padding:24px;box-shadow:var(--shadow-md);display:none
+}
+.caption-preview.visible{display:block;animation:slideUp .35s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.cp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cp-title{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--gray800);display:flex;align-items:center;gap:8px}
+.generated-badge{
+  background:linear-gradient(135deg,var(--p600),var(--p400));
+  color:#fff;font-size:10px;font-weight:700;
+  padding:3px 10px;border-radius:99px;letter-spacing:.5px
+}
+.cp-text{background:var(--white);border:1px solid var(--p100);border-radius:var(--radius-md);padding:16px;font-size:13px;line-height:1.7;color:var(--gray800);margin-bottom:12px}
+.cp-hashtags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.cp-copy{
+  font-size:12px;color:var(--p600);background:none;border:none;
+  cursor:pointer;font-family:var(--font-body);font-weight:600;
+  display:flex;align-items:center;gap:5px
+}
+.cp-copy:hover{color:var(--p700)}
+
+/* ─── DASHBOARD ─── */
+.dashboard{background:var(--white);border:1px solid rgba(196,174,255,.25);border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);overflow:hidden}
+.dash-header{
+  padding:20px 24px;border-bottom:1px solid var(--gray100);
+  display:flex;align-items:center;justify-content:space-between
+}
+.dash-title{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--gray800);display:flex;align-items:center;gap:8px}
+.dash-actions{display:flex;align-items:center;gap:8px}
+.dash-select{
+  font-size:12px;border:1px solid var(--gray200);border-radius:var(--radius-sm);
+  background:var(--white);color:var(--gray600);padding:6px 10px;font-family:var(--font-body);outline:none
+}
+.dash-btn{
+  font-size:12px;background:none;border:1px solid var(--gray200);
+  border-radius:var(--radius-sm);padding:6px 12px;cursor:pointer;
+  font-family:var(--font-body);color:var(--gray600);transition:all .15s
+}
+.dash-btn:hover{background:var(--gray50);border-color:var(--gray400)}
+.dash-btn.danger:hover{background:#fef2f2;border-color:#fca5a5;color:#dc2626}
+.dash-btn.export:hover{background:var(--p50);border-color:var(--p300);color:var(--p700)}
+
+/* ─── EMPTY STATE ─── */
+.empty-state{padding:60px 24px;text-align:center}
+.empty-icon{
+  width:64px;height:64px;border-radius:var(--radius-lg);
+  background:linear-gradient(135deg,var(--p100),var(--p50));
+  border:1px solid var(--p200);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 16px
+}
+.empty-state p{color:var(--gray400);font-size:14px;font-weight:500}
+.empty-state small{color:var(--p200);font-size:12px;display:block;margin-top:4px}
+
+/* ─── TABLE ─── */
+.table-wrap{overflow-x:auto;display:none}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--p50);border-bottom:1px solid var(--p100)}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--p600);padding:12px 16px;letter-spacing:.5px;text-transform:uppercase}
+tbody tr{border-bottom:1px solid var(--gray100);transition:background .15s}
+tbody tr:hover{background:var(--p50)}
+tbody tr:last-child{border-bottom:none}
+td{padding:12px 16px;vertical-align:middle}
+.preview-thumb{width:52px;height:40px;border-radius:8px;object-fit:cover;border:1px solid var(--p100)}
+.preview-placeholder{width:52px;height:40px;border-radius:8px;background:var(--p50);border:1px solid var(--p100);display:flex;align-items:center;justify-content:center;font-size:16px}
+.file-name{font-size:12px;font-weight:500;color:var(--gray800);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-type{font-size:11px;color:var(--gray400);text-transform:capitalize;margin-top:2px}
+.caption-cell{font-size:12px;color:var(--gray600);max-width:160px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
+.time-cell{font-size:11px;color:var(--gray400);white-space:nowrap}
+.del-btn{background:none;border:none;color:var(--gray200);cursor:pointer;font-size:13px;transition:color .15s;padding:4px}
+.del-btn:hover{color:#dc2626}
+
+/* ─── STATUS BADGES ─── */
+.badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;letter-spacing:.3px;white-space:nowrap}
+.badge-pending{background:#fef3c7;color:#92400e}
+.badge-posted{background:#d1fae5;color:#065f46}
+.badge-error{background:#fee2e2;color:#991b1b}
+.badge-scheduled{background:var(--p100);color:var(--p700)}
+
+/* ─── HOW IT WORKS ─── */
+.how-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.how-step{text-align:center}
+.how-icon{
+  width:44px;height:44px;border-radius:var(--radius-md);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;margin:0 auto 10px;
+  border:1px solid var(--p200)
+}
+.how-icon.s1{background:linear-gradient(135deg,#f3e8ff,#ede9fe)}
+.how-icon.s2{background:linear-gradient(135deg,#dbeafe,#eff6ff)}
+.how-icon.s3{background:linear-gradient(135deg,#fef3c7,#fffbeb)}
+.how-icon.s4{background:linear-gradient(135deg,#d1fae5,#ecfdf5)}
+.how-name{font-size:12px;font-weight:600;color:var(--gray700)}
+.how-sub{font-size:11px;color:var(--gray400);margin-top:3px}
+
+/* ─── BULK ─── */
+.bulk-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--p50);border:1px solid var(--p100);border-radius:var(--radius-md);margin-bottom:8px}
+.bulk-info{flex:1;min-width:0}
+.bulk-name{font-size:12px;font-weight:500;color:var(--gray800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bulk-size{font-size:11px;color:var(--gray400)}
+.bulk-rm{background:none;border:none;color:var(--gray400);cursor:pointer;font-size:13px;padding:2px}
+.bulk-rm:hover{color:#dc2626}
+
+/* ─── SETTINGS ─── */
+.setting-toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;background:var(--p50);border:1px solid var(--p100);
+  border-radius:var(--radius-md);margin-bottom:12px
+}
+
+/* ─── MODAL ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(60,20,120,.35);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:var(--radius-xl);padding:28px;max-width:480px;width:92%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);border:1px solid var(--p100)}
+.modal-title{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--p800);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.modal-close{width:100%;margin-top:16px;padding:12px;background:var(--p50);border:1px solid var(--p200);border-radius:var(--radius-md);color:var(--p700);font-family:var(--font-body);font-weight:600;font-size:14px;cursor:pointer;transition:all .15s}
+.modal-close:hover{background:var(--p100)}
+
+/* ─── TOAST ─── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:999;
+  padding:14px 20px;border-radius:var(--radius-md);font-size:13px;font-weight:500;
+  box-shadow:var(--shadow-lg);display:none;max-width:340px;font-family:var(--font-body);
+  animation:slideUp .3s ease
+}
+.toast.show{display:block}
+.toast-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+.toast-error{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}
+.toast-info{background:var(--p50);color:var(--p800);border:1px solid var(--p200)}
+
+/* ─── SPINNER ─── */
+.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── SCROLL BAR ─── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--p200);border-radius:99px}
+
+/* ─── DIVIDER ─── */
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--p200),transparent);margin:20px 0}
+
+/* ─── SECTION LABEL ─── */
+.section-label{font-size:11px;font-weight:700;color:var(--p500);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;display:block}
+
+/* ─── FADE IN ─── */
+.fade-in{animation:slideUp .35s ease}
+
+/* ─── WAVE DIVIDER ─── */
+.hero-wave{display:block;margin-top:-2px;margin-bottom:-1px;color:var(--off-white)}
+
+/* ─── CAROUSEL COUNT PILL ─── */
+.carousel-count-pill{
+  display:inline-flex;align-items:center;gap:5px;background:var(--p100);
+  border:1px solid var(--p200);border-radius:99px;padding:3px 10px;font-size:11px;
+  font-weight:600;color:var(--p700);margin-left:8px
+}
 </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-100 min-h-screen transition-colors duration-300">
+<body>
 
-<!-- NAVBAR -->
-<nav class="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur border-b border-gray-200 dark:border-gray-800">
-  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg grad-btn flex items-center justify-center">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+<!-- ─── NAV ─── -->
+<nav>
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       </div>
-      <span class="font-bold text-lg tracking-tight grad-text">AutoPost <span class="text-gray-400 dark:text-gray-500 font-normal">AI</span></span>
+      <div class="brand-name">AutoPost<em>AI</em></div>
     </div>
-    <div class="flex items-center gap-3">
-      <span id="postCount" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-3 py-1.5 rounded-full">
-        <span class="w-1.5 h-1.5 bg-purple-500 rounded-full inline-block"></span>
+    <div class="nav-actions">
+      <div class="nav-pill purple" id="postCountPill" style="display:none">
+        <span class="pulse-dot"></span>
         <span id="countLabel">0 posts</span>
-      </span>
-      <button onclick="openScheduler()" class="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors" title="Schedule Posts">📅 Schedule</button>
-      <button onclick="toggleDark()" id="darkToggle" class="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-        <svg id="moonIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-        <svg id="sunIcon" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      </button>
+      </div>
+      <button class="nav-pill outline" onclick="openScheduler()">📅 Scheduled</button>
     </div>
   </div>
 </nav>
 
-<!-- HERO -->
-<div class="bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 text-white">
-  <div class="max-w-6xl mx-auto px-4 py-10 md:py-14 text-center">
-    <div class="inline-flex items-center gap-2 text-xs font-semibold bg-white/20 backdrop-blur px-4 py-1.5 rounded-full mb-4">
-      <span class="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></span>
-      AI-Powered · Instagram Automation · Images &amp; Videos
+<!-- ─── HERO ─── -->
+<div class="hero">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:900px;height:900px;border-radius:50%;border:1px solid rgba(255,255,255,.06);pointer-events:none"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;border-radius:50%;border:1px solid rgba(255,255,255,.06);pointer-events:none"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="pulse-dot" style="background:#a5f3fc"></span>
+      AI-Powered &nbsp;·&nbsp; Instagram Automation &nbsp;·&nbsp; Images, Videos &amp; Carousels
     </div>
-    <h1 class="text-3xl md:text-5xl font-bold mb-3 leading-tight">Upload. Generate. Post.</h1>
-    <p class="text-white/75 text-base md:text-lg max-w-xl mx-auto">Automate Instagram with AI captions. Images, videos, bulk uploads, and scheduled posts.</p>
+    <h1>Upload. <span>Generate.</span> Post.</h1>
+    <p class="hero-sub">Automate your Instagram with AI-written captions, smart hashtags, carousel posts, and scheduled publishing.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num">4</div><div class="hero-stat-label">Post Types</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">10</div><div class="hero-stat-label">Carousel Slides</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">6</div><div class="hero-stat-label">Caption Styles</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">∞</div><div class="hero-stat-label">Scheduled Posts</div></div>
+    </div>
   </div>
 </div>
 
-<!-- TABS -->
-<div class="max-w-6xl mx-auto px-4 pt-5 pb-0">
-  <div class="flex gap-2 border-b border-gray-200 dark:border-gray-800 pb-0">
-    <button class="tab-btn active" onclick="switchTab('single', this)">Single Upload</button>
-    <button class="tab-btn" onclick="switchTab('bulk', this)">Bulk Upload</button>
-    <button class="tab-btn" onclick="switchTab('settings', this)">⚙ Settings</button>
+<!-- ─── TABS ─── -->
+<div class="tab-bar">
+  <div class="tab-bar-inner">
+    <button class="tab-btn active" onclick="switchTab('single',this)">Single Upload</button>
+    <button class="tab-btn" onclick="switchTab('bulk',this)">Bulk Upload</button>
+    <button class="tab-btn" onclick="switchTab('settings',this)">⚙ Settings</button>
   </div>
 </div>
 
-<!-- MAIN LAYOUT -->
-<div class="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+<!-- ─── MAIN ─── -->
+<div class="main">
 
-  <!-- LEFT -->
-  <div class="lg:col-span-2 space-y-5">
+  <!-- ════ LEFT COLUMN ════ -->
+  <div style="display:flex;flex-direction:column;gap:20px">
 
-    <!-- SINGLE UPLOAD TAB -->
+    <!-- SINGLE UPLOAD -->
     <div id="tab-single">
-      <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-        <h2 class="font-semibold text-base mb-4 flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload Media
-        </h2>
-
-        <!-- Drop Zone -->
-        <div id="dropZone" class="drop-zone rounded-xl p-6 text-center cursor-pointer mb-4 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" onclick="document.getElementById('fileInput').click()">
-          <div id="dropDefault">
-            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--p600)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             </div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Drag &amp; drop or <span class="text-purple-600 dark:text-purple-400">browse</span></p>
-            <p class="text-xs text-gray-400 dark:text-gray-600 mt-1">JPG, PNG, MP4, MOV, WEBM — max 100MB</p>
-          </div>
-          <div id="dropPreview" class="hidden">
-            <img id="imgPreview" class="mx-auto max-h-40 rounded-lg object-contain" />
-            <video id="vidPreview" class="mx-auto max-h-40 rounded-lg hidden" playsinline muted></video>
-            <p id="previewName" class="text-xs text-gray-500 dark:text-gray-400 mt-2 truncate max-w-xs mx-auto font-medium"></p>
-            <p id="previewSize" class="text-xs text-gray-400 mt-0.5"></p>
-            <button onclick="clearFile(event)" class="mt-2 text-xs text-red-400 hover:text-red-600 underline">Remove</button>
+            Upload Media
           </div>
         </div>
-        <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFile(this.files[0])"/>
+        <div class="card-body">
 
-        <!-- Upload Progress -->
-        <div id="uploadProgress" class="hidden mb-4">
-          <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-            <span id="progressLabel">Processing...</span>
-            <span id="progressPct">0%</span>
+          <!-- Drop zone -->
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div id="dropDefault">
+              <div class="drop-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p500)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <p class="main-text">Drag &amp; drop or <span>browse</span></p>
+              <p class="sub-text">JPG, PNG, MP4, MOV — max 100MB</p>
+            </div>
+            <div id="dropPreview" style="display:none">
+              <img id="imgPreview" style="max-height:120px;max-width:100%;object-fit:contain;border-radius:10px;margin-bottom:8px"/>
+              <video id="vidPreview" style="max-height:120px;max-width:100%;border-radius:10px;margin-bottom:8px;display:none" playsinline muted></video>
+              <p id="previewName" style="font-size:12px;color:var(--gray600);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;margin:0 auto 2px"></p>
+              <p id="previewSize" style="font-size:11px;color:var(--gray400)"></p>
+              <button onclick="clearFile(event)" style="margin-top:8px;font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-family:var(--font-body)">Remove file</button>
+            </div>
           </div>
-          <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-        </div>
+          <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" onchange="handleFile(this.files[0])"/>
 
-        <!-- Media Type -->
-        <div class="mb-3">
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Post Type</label>
-          <div class="grid grid-cols-3 gap-2">
-            <button onclick="setType('image')" id="typeImg" class="type-btn active-type text-xs font-semibold py-2 rounded-lg border border-purple-400 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700 transition-all">🖼 Image</button>
-            <button onclick="setType('video')" id="typeVid" class="type-btn text-xs font-semibold py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 transition-all">🎥 Video</button>
-            <button onclick="setType('reel')" id="typeReel" class="type-btn text-xs font-semibold py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 transition-all">🎬 Reel</button>
+          <!-- Progress -->
+          <div class="progress-wrap" id="uploadProgress">
+            <div class="progress-top">
+              <span id="progressLabel">Processing...</span>
+              <span id="progressPct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
           </div>
-        </div>
 
-        <!-- Caption Style -->
-        <div class="mb-3">
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Caption Style</label>
-          <select id="captionStyle" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2">
-            <option value="engaging">✨ Engaging &amp; Trendy</option>
-            <option value="minimal">🎯 Minimal &amp; Clean</option>
-            <option value="storytelling">📖 Storytelling</option>
-            <option value="funny">😄 Funny &amp; Witty</option>
-            <option value="motivational">💪 Motivational</option>
-            <option value="professional">💼 Professional</option>
-          </select>
-        </div>
+          <!-- Post Type -->
+          <div class="form-group">
+            <span class="section-label">Post Type</span>
+            <div class="post-type-grid">
+              <div class="type-btn active" id="typeImage" onclick="selectType('image')">
+                <div class="t-icon">🖼</div>
+                <div class="t-name">Image</div>
+                <div class="t-sub">Single photo</div>
+              </div>
+              <div class="type-btn" id="typeCarousel" onclick="selectType('carousel')">
+                <div class="t-icon">🎠</div>
+                <div class="t-name">Carousel</div>
+                <div class="t-sub">Up to 10</div>
+              </div>
+              <div class="type-btn" id="typeVideo" onclick="selectType('video')">
+                <div class="t-icon">🎥</div>
+                <div class="t-name">Video</div>
+                <div class="t-sub">MP4 / MOV</div>
+              </div>
+              <div class="type-btn" id="typeReel" onclick="selectType('reel')">
+                <div class="t-icon">🎬</div>
+                <div class="t-name">Reel</div>
+                <div class="t-sub">Short video</div>
+              </div>
+            </div>
 
-        <!-- Caption Idea + char counter -->
-        <div class="mb-3">
-          <div class="flex justify-between items-center mb-1.5">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Caption Idea <span class="text-gray-300 dark:text-gray-600">(optional)</span></label>
-            <span class="char-count" id="captionCharCount">0 / 2200</span>
+            <!-- Carousel panel -->
+            <div class="carousel-panel" id="carouselPanel">
+              <div class="carousel-drop" id="carouselDrop" onclick="document.getElementById('carouselInput').click()">
+                <p>Drag &amp; drop images or <span>browse</span></p>
+                <p style="font-size:11px;color:var(--gray400);margin-top:3px">JPG, PNG — up to 10 slides</p>
+              </div>
+              <input type="file" id="carouselInput" accept="image/*" multiple style="display:none" onchange="addCarouselImages(this.files)"/>
+              <div id="carouselImgGrid" style="display:none">
+                <div class="carousel-info">
+                  <span class="count"><strong id="cImgCount">0</strong> / 10 images</span>
+                  <button class="add-more-btn" onclick="document.getElementById('carouselInput').click()">+ Add more</button>
+                </div>
+                <div class="carousel-img-grid" id="cGridInner"></div>
+                <div class="reorder-note">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+                  Drag thumbnails to reorder slides
+                </div>
+              </div>
+              <div class="limit-warn" id="limitWarn">Maximum 10 images reached for carousel posts.</div>
+            </div>
           </div>
-          <textarea id="captionInput" rows="3" maxlength="2200" placeholder="Give AI a hint... e.g. 'morning coffee vibes'" oninput="updateCharCount()" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2 resize-none"></textarea>
-        </div>
 
-        <!-- Hashtag suggestions -->
-        <div class="mb-4">
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Hashtag Suggestions</label>
-            <button onclick="genHashtags()" class="text-xs text-purple-600 dark:text-purple-400 hover:underline">Auto-generate</button>
+          <!-- Caption Style -->
+          <div class="form-group">
+            <label class="form-label">Caption Style</label>
+            <select id="captionStyle">
+              <option value="engaging">✨ Engaging &amp; Trendy</option>
+              <option value="minimal">🎯 Minimal &amp; Clean</option>
+              <option value="storytelling">📖 Storytelling</option>
+              <option value="funny">😄 Funny &amp; Witty</option>
+              <option value="motivational">💪 Motivational</option>
+              <option value="professional">💼 Professional</option>
+            </select>
           </div>
-          <div id="hashtagWrap" class="flex flex-wrap gap-1.5 min-h-[24px]">
-            <span class="text-xs text-gray-400 italic" id="hashtagPlaceholder">Click auto-generate or type a topic above</span>
-          </div>
-        </div>
 
-        <!-- Schedule Toggle -->
-        <div class="mb-4 flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-          <div>
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Schedule Post</p>
-            <p class="text-xs text-gray-400">Post at a specific time</p>
+          <!-- Caption Idea -->
+          <div class="form-group">
+            <label class="form-label">
+              Caption Idea <span class="opt">optional</span>
+              <span class="char-count" id="captionCharCount">0 / 2200</span>
+            </label>
+            <textarea id="captionInput" rows="3" maxlength="2200" placeholder="Give AI a hint… e.g. 'morning coffee vibes'" oninput="updateCharCount()"></textarea>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="scheduleToggle" class="sr-only peer" onchange="toggleSchedule()">
-            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-          </label>
-        </div>
-        <div id="scheduleFields" class="hidden mb-4">
-          <input type="datetime-local" id="scheduleTime" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2" />
-        </div>
 
-        <!-- Submit Button -->
-        <button onclick="handleSubmit()" id="submitBtn" class="grad-btn w-full text-white font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Upload &amp; Post to Instagram
-        </button>
-        <p class="text-center text-xs text-gray-400 dark:text-gray-600 mt-3">AI will generate a caption and post automatically</p>
-      </div>
-    </div>
-
-    <!-- BULK UPLOAD TAB -->
-    <div id="tab-bulk" class="hidden">
-      <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-        <h2 class="font-semibold text-base mb-4 flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Bulk Upload
-        </h2>
-        <div id="bulkDropZone" class="drop-zone rounded-xl p-6 text-center cursor-pointer mb-4 bg-blue-50/50 dark:bg-blue-900/10" onclick="document.getElementById('bulkInput').click()">
-          <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <!-- Hashtags -->
+          <div class="form-group">
+            <div class="htag-actions">
+              <label class="form-label" style="margin-bottom:0">Hashtags</label>
+              <button class="htag-generate-btn" onclick="genHashtags()">✦ Auto-generate</button>
+            </div>
+            <div class="hashtag-area" id="hashtagArea">
+              <span class="htag-placeholder" id="htagPlaceholder">Auto-generate or type a topic above</span>
+            </div>
           </div>
-          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Drop multiple files or <span class="text-blue-600 dark:text-blue-400">browse</span></p>
-          <p class="text-xs text-gray-400 mt-1">Up to 10 files at once</p>
-        </div>
-        <input type="file" id="bulkInput" accept="image/*,video/*" multiple class="hidden" onchange="handleBulk(this.files)"/>
-        <div id="bulkList" class="space-y-2 mb-4"></div>
-        <div id="bulkActions" class="hidden">
-          <select id="bulkCaptionStyle" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2 mb-3">
-            <option value="engaging">✨ Engaging &amp; Trendy</option>
-            <option value="minimal">🎯 Minimal &amp; Clean</option>
-            <option value="storytelling">📖 Storytelling</option>
-            <option value="motivational">💪 Motivational</option>
-          </select>
-          <button onclick="handleBulkSubmit()" id="bulkSubmitBtn" class="grad-btn w-full text-white font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-            Post All to Instagram
+
+          <div class="divider"></div>
+
+          <!-- Schedule -->
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <p>Schedule Post</p>
+              <small>Set a date &amp; time to auto-publish</small>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="scheduleToggle" onchange="toggleSchedule()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div id="scheduleFields" style="display:none;margin-bottom:16px">
+            <label class="form-label">Publish Date &amp; Time</label>
+            <input type="datetime-local" id="scheduleTime"/>
+          </div>
+
+          <!-- Submit -->
+          <button class="submit-btn" onclick="handleSubmit()" id="submitBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Upload &amp; Post to Instagram
           </button>
-          <button onclick="clearBulk()" class="w-full mt-2 text-sm text-red-400 hover:text-red-600 py-1.5">Clear all</button>
+          <p class="submit-note">AI will generate a caption and post automatically via your webhook</p>
         </div>
       </div>
     </div>
 
-    <!-- SETTINGS TAB -->
-    <div id="tab-settings" class="hidden">
-      <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm space-y-4">
-        <h2 class="font-semibold text-base flex items-center gap-2">⚙ Settings</h2>
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Webhook URL (n8n / Zapier)</label>
-          <input type="url" id="webhookInput" placeholder="https://your-n8n.com/webhook/..." class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Default Caption Style</label>
-          <select id="defaultStyleSetting" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2">
-            <option value="engaging">✨ Engaging &amp; Trendy</option>
-            <option value="minimal">🎯 Minimal</option>
-            <option value="storytelling">📖 Storytelling</option>
-            <option value="funny">😄 Funny</option>
-            <option value="motivational">💪 Motivational</option>
-            <option value="professional">💼 Professional</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Instagram Handle (for tagging)</label>
-          <input type="text" id="igHandle" placeholder="@youraccount" class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm px-3 py-2" />
-        </div>
-        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-          <div>
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-add hashtags</p>
-            <p class="text-xs text-gray-400">Append AI hashtags to every post</p>
+    <!-- BULK UPLOAD -->
+    <div id="tab-bulk" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--p600)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            Bulk Upload
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="autoHashtags" class="sr-only peer" checked>
-            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-          </label>
         </div>
-        <button onclick="saveSettings()" class="grad-btn w-full text-white font-semibold py-2.5 rounded-xl text-sm">Save Settings</button>
+        <div class="card-body">
+          <div class="drop-zone" id="bulkDropZone" onclick="document.getElementById('bulkInput').click()" style="background:linear-gradient(135deg,#eff6ff,#f0f9ff);border-color:#93c5fd">
+            <div class="drop-icon" style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border-color:#93c5fd">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <p class="main-text">Drop multiple files or <span style="color:#2563eb">browse</span></p>
+            <p class="sub-text">Up to 10 files at once</p>
+          </div>
+          <input type="file" id="bulkInput" accept="image/*,video/*" multiple style="display:none" onchange="handleBulk(this.files)"/>
+          <div id="bulkList"></div>
+          <div id="bulkActions" style="display:none">
+            <div class="form-group">
+              <label class="form-label">Caption Style for All</label>
+              <select id="bulkCaptionStyle">
+                <option value="engaging">✨ Engaging &amp; Trendy</option>
+                <option value="minimal">🎯 Minimal &amp; Clean</option>
+                <option value="storytelling">📖 Storytelling</option>
+                <option value="motivational">💪 Motivational</option>
+              </select>
+            </div>
+            <button onclick="handleBulkSubmit()" id="bulkSubmitBtn" class="submit-btn" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);box-shadow:0 4px 18px rgba(37,99,235,.35)">
+              Post All to Instagram
+            </button>
+            <button onclick="clearBulk()" style="width:100%;margin-top:8px;padding:10px;background:none;border:1px solid #fca5a5;border-radius:var(--radius-md);color:#dc2626;font-family:var(--font-body);font-size:13px;cursor:pointer;font-weight:500">Clear all</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Stats Card -->
-    <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-      <h2 class="font-semibold text-base mb-4 text-gray-700 dark:text-gray-200">Quick Stats</h2>
-      <div class="grid grid-cols-4 gap-2">
-        <div class="text-center bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-          <p class="text-xl font-bold text-purple-600 dark:text-purple-400" id="statTotal">0</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total</p>
+    <!-- SETTINGS -->
+    <div id="tab-settings" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="icon-wrap">⚙</div>
+            Settings
+          </div>
         </div>
-        <div class="text-center bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-          <p class="text-xl font-bold text-green-600 dark:text-green-400" id="statPosted">0</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Posted</p>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Webhook URL</label>
+            <input type="url" id="webhookInput" placeholder="https://your-n8n.com/webhook/..."/>
+            <p style="font-size:11px;color:var(--gray400);margin-top:5px">Connect to n8n, Zapier, or Make</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default Caption Style</label>
+            <select id="defaultStyleSetting">
+              <option value="engaging">✨ Engaging &amp; Trendy</option>
+              <option value="minimal">🎯 Minimal</option>
+              <option value="storytelling">📖 Storytelling</option>
+              <option value="funny">😄 Funny</option>
+              <option value="motivational">💪 Motivational</option>
+              <option value="professional">💼 Professional</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Instagram Handle</label>
+            <input type="text" id="igHandle" placeholder="@youraccount"/>
+          </div>
+          <div class="setting-toggle-row">
+            <div>
+              <p style="font-size:13px;font-weight:500;color:var(--gray700)">Auto-add hashtags</p>
+              <p style="font-size:11px;color:var(--gray400)">Append AI hashtags to every post</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="autoHashtags" checked>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <button onclick="saveSettings()" class="submit-btn">Save Settings</button>
         </div>
-        <div class="text-center bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-          <p class="text-xl font-bold text-amber-500 dark:text-amber-400" id="statPending">0</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Pending</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="icon-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--p600)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          Quick Stats
         </div>
-        <div class="text-center bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5">
-          <p class="text-xl font-bold text-blue-500 dark:text-blue-400" id="statScheduled">0</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sched.</p>
+      </div>
+      <div class="card-body">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-num purple" id="statTotal">0</div><div class="stat-label">Total</div></div>
+          <div class="stat-card"><div class="stat-num green" id="statPosted">0</div><div class="stat-label">Posted</div></div>
+          <div class="stat-card"><div class="stat-num amber" id="statPending">0</div><div class="stat-label">Pending</div></div>
+          <div class="stat-card"><div class="stat-num blue" id="statScheduled">0</div><div class="stat-label">Sched.</div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT -->
-  <div class="lg:col-span-3 space-y-5">
+  <!-- ════ RIGHT COLUMN ════ -->
+  <div style="display:flex;flex-direction:column;gap:20px">
 
     <!-- AI Caption Preview -->
-    <div id="captionPreview" class="hidden card bg-white dark:bg-gray-900 rounded-2xl border border-purple-200 dark:border-purple-900 p-5 shadow-sm fade-in">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="font-semibold text-base flex items-center gap-2">
-          <div class="w-6 h-6 rounded-md grad-btn flex items-center justify-center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/></svg>
+    <div class="caption-preview" id="captionPreview">
+      <div class="cp-header">
+        <div class="cp-title">
+          <div class="icon-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--p600)" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           </div>
           AI Caption Preview
-        </h2>
-        <span class="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/40 px-2.5 py-1 rounded-full">Generated</span>
+        </div>
+        <span class="generated-badge">GENERATED</span>
       </div>
-      <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-3">
-        <p id="previewCaption" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed"></p>
-      </div>
-      <div id="previewHashtags" class="flex flex-wrap gap-1.5"></div>
-      <button onclick="copyCaption()" class="mt-3 text-xs text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1">
+      <div class="cp-text" id="previewCaptionText"></div>
+      <div class="cp-hashtags" id="previewHashtags"></div>
+      <button class="cp-copy" onclick="copyCaption()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy caption
+        Copy caption to clipboard
       </button>
     </div>
 
-    <!-- Posts Dashboard -->
-    <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-        <h2 class="font-semibold text-base flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-500"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <!-- Dashboard -->
+    <div class="dashboard">
+      <div class="dash-header">
+        <div class="dash-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--p500)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           Post Dashboard
-        </h2>
-        <div class="flex items-center gap-2">
-          <select id="filterSelect" onchange="renderTable()" class="text-xs border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1.5">
+        </div>
+        <div class="dash-actions">
+          <select class="dash-select" id="filterSelect" onchange="renderTable()">
             <option value="all">All Posts</option>
             <option value="pending">Pending</option>
             <option value="posted">Posted</option>
             <option value="scheduled">Scheduled</option>
             <option value="error">Error</option>
           </select>
-          <button onclick="exportCSV()" class="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 px-2 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">Export</button>
-          <button onclick="clearAll()" class="text-xs text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">Clear</button>
+          <button class="dash-btn export" onclick="exportCSV()">Export CSV</button>
+          <button class="dash-btn danger" onclick="clearAll()">Clear All</button>
         </div>
       </div>
 
-      <div id="emptyState" class="py-16 text-center">
-        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p400)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
-        <p class="text-gray-400 dark:text-gray-600 text-sm font-medium">No posts yet</p>
-        <p class="text-gray-300 dark:text-gray-700 text-xs mt-1">Upload your first media to get started</p>
+        <p>No posts yet</p>
+        <small>Upload your first media to get started</small>
       </div>
 
-      <div id="tableWrap" class="hidden overflow-x-auto">
-        <table class="w-full text-sm">
+      <div class="table-wrap" id="tableWrap">
+        <table>
           <thead>
-            <tr class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-              <th class="text-left text-xs font-semibold text-gray-400 px-4 py-3 w-8">#</th>
-              <th class="text-left text-xs font-semibold text-gray-400 px-4 py-3">Preview</th>
-              <th class="text-left text-xs font-semibold text-gray-400 px-4 py-3">File</th>
-              <th class="text-left text-xs font-semibold text-gray-400 px-4 py-3">Caption</th>
-              <th class="text-left text-xs font-semibold text-gray-400 px-4 py-3">Status</th>
-              <th class="text-left text-xs font-semibold text-gray-400 px-4 py-3">Time</th>
-              <th class="text-left text-xs font-semibold text-gray-400 px-4 py-3"></th>
+            <tr>
+              <th>#</th>
+              <th>Preview</th>
+              <th>File</th>
+              <th>Caption</th>
+              <th>Status</th>
+              <th>Time</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -393,636 +862,650 @@
       </div>
     </div>
 
-    <!-- How It Works -->
-    <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-      <h2 class="font-semibold text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">How it works</h2>
-      <div class="grid grid-cols-4 gap-3">
-        <div class="text-center">
-          <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-lg">📤</div>
-          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">1. Upload</p>
-          <p class="text-xs text-gray-400 mt-0.5">Image or video</p>
-        </div>
-        <div class="text-center">
-          <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-lg">🤖</div>
-          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">2. AI Writes</p>
-          <p class="text-xs text-gray-400 mt-0.5">Instant caption</p>
-        </div>
-        <div class="text-center">
-          <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-lg">📅</div>
-          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">3. Schedule</p>
-          <p class="text-xs text-gray-400 mt-0.5">Optional timing</p>
-        </div>
-        <div class="text-center">
-          <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-lg">✅</div>
-          <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">4. Auto Post</p>
-          <p class="text-xs text-gray-400 mt-0.5">Goes live</p>
+    <!-- How it works -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" style="font-size:13px;color:var(--gray400);font-family:var(--font-body);font-weight:700;letter-spacing:.5px;text-transform:uppercase">How It Works</div>
+      </div>
+      <div class="card-body">
+        <div class="how-grid">
+          <div class="how-step">
+            <div class="how-icon s1">📤</div>
+            <div class="how-name">1. Upload</div>
+            <div class="how-sub">Image, video or carousel</div>
+          </div>
+          <div class="how-step">
+            <div class="how-icon s2">🤖</div>
+            <div class="how-name">2. AI Writes</div>
+            <div class="how-sub">Instant smart caption</div>
+          </div>
+          <div class="how-step">
+            <div class="how-icon s3">📅</div>
+            <div class="how-name">3. Schedule</div>
+            <div class="how-sub">Pick date &amp; time</div>
+          </div>
+          <div class="how-step">
+            <div class="how-icon s4">✅</div>
+            <div class="how-name">4. Auto Post</div>
+            <div class="how-sub">Goes live via webhook</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Schedule Modal -->
-<div id="scheduleModal" class="modal-overlay hidden" onclick="closeScheduler(event)">
-  <div class="modal dark:bg-gray-900">
-    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">📅 Scheduled Posts</h3>
-    <div id="scheduledList" class="space-y-3 mb-4"></div>
-    <div id="scheduledEmpty" class="text-center py-8 text-gray-400 text-sm">No scheduled posts</div>
-    <button onclick="document.getElementById('scheduleModal').classList.add('hidden')" class="w-full mt-2 text-sm text-gray-500 hover:text-gray-700 py-2">Close</button>
+<!-- ─── SCHEDULE MODAL ─── -->
+<div class="modal-overlay" id="scheduleModal" onclick="closeScheduler(event)">
+  <div class="modal">
+    <div class="modal-title">📅 Scheduled Posts</div>
+    <div id="scheduledList"></div>
+    <div id="scheduledEmpty" style="text-align:center;padding:32px;color:var(--gray400);font-size:14px">No scheduled posts yet</div>
+    <button class="modal-close" onclick="document.getElementById('scheduleModal').classList.remove('open')">Close</button>
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast" class="toast hidden"></div>
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
 
 <script>
+/* ═══════════════════════════════════════════
+   CONSTANTS & STATE
+═══════════════════════════════════════════ */
 const DEFAULT_WEBHOOK = "https://n8n-ynqpwdna.ap-northeast-1.clawcloudrun.com/webhook/dashboard";
-
 let posts = JSON.parse(localStorage.getItem('autopost_posts') || '[]');
 let currentFile = null;
 let bulkFiles = [];
-let isDark = localStorage.getItem('autopost_dark') === 'true';
 let currentMediaType = 'image';
-let lastGeneratedCaption = '';
-let lastGeneratedHashtags = [];
-
+let carouselImages = [];
+let dragSrcIdx = null;
+let lastCaption = '';
+let lastHashtags = [];
 const settings = JSON.parse(localStorage.getItem('autopost_settings') || '{}');
 settings.webhook = settings.webhook || DEFAULT_WEBHOOK;
 
+/* ═══════════════════════════════════════════
+   CAPTION TEMPLATES
+═══════════════════════════════════════════ */
 const captionTemplates = {
-  engaging: {
-    image: [
-      "✨ {idea}Moments like these remind me why I love what I do. Living fully, one frame at a time. #aesthetic #vibes #photography #instagood #lifestyle",
-      "🌅 {idea}Golden hour hits different. Some memories are meant to last forever. #goldenhour #lifestyle #instagood #content #photooftheday",
-      "🔥 {idea}This view? Absolutely worth it. Tap ❤️ if you feel the vibe. #explore #photography #beautiful #trending #vibes"
-    ],
-    video: [
-      "🎬 {idea}Watch till the end — this one gets better every second. Drop a ❤️ if this resonates! #reels #viral #trending #explore #instagood",
-      "📱 {idea}Behind every great moment is a story worth telling. Full video now live! #video #instagramreels #fyp #trending",
-      "🔥 {idea}They said it couldn't be done. We did it anyway. #motivation #content #creator #reels #viral"
-    ],
-    reel: [
-      "🎬 {idea}POV: You found the best reel of the day. Save for later! 🔖 #reels #fyp #viral #trending #explore",
-      "⚡ {idea}Can't stop rewatching this. The energy is UNMATCHED. Drop 🔥 below! #reels #instagood #viral #trending"
-    ]
+  engaging:{
+    image:["✨ {idea}Moments like these remind me why I love what I do. Living fully, one frame at a time. #aesthetic #vibes #photography #instagood #lifestyle","🌅 {idea}Golden hour hits different. Some memories are meant to last forever. #goldenhour #lifestyle #instagood #photooftheday","🔥 {idea}This view? Absolutely worth it. Tap ❤️ if you feel the vibe. #explore #photography #beautiful #trending #vibes"],
+    carousel:["🎠 {idea}Swipe through the story — some moments are too good for just one frame. Save this for inspo! #carousel #vibes #photooftheday #lifestyle","✨ {idea}A few favourites from this week. Slide to see more ➡️ Which one's your pick? #lifestyle #aesthetic #photography #instagood","🌟 {idea}Can't pick just one. So here's a whole carousel of good vibes. Drop ❤️ if you relate! #carousel #trending #explore #instagood"],
+    video:["🎬 {idea}Watch till the end — this one gets better every second. Drop a ❤️ if this resonates! #reels #viral #trending #explore","📱 {idea}Behind every great moment is a story worth telling. #video #reels #fyp #trending"],
+    reel:["🎬 {idea}POV: You found the best reel of the day. Save for later! 🔖 #reels #fyp #viral #trending","⚡ {idea}Can't stop rewatching this. The energy is UNMATCHED. Drop 🔥 below! #reels #instagood #viral"]
   },
-  minimal: {
-    image: ["{idea}Simple. Clean. Intentional. #minimal #aesthetic #photography","{idea}Less is more. #minimal #clean #lifestyle","{idea}Quiet moments. Loud impact. #minimal #photography #aesthetic"],
-    video: ["{idea}No words needed. #minimal #video #aesthetic","{idea}Watch. Feel. Repeat. #minimal #reels #aesthetic"],
-    reel: ["{idea}Clean energy only. #minimal #reels #aesthetic"]
+  minimal:{
+    image:["{idea}Simple. Clean. Intentional. #minimal #aesthetic #photography","{idea}Less is more. #minimal #clean #lifestyle"],
+    carousel:["{idea}A few quiet moments. #minimal #carousel #aesthetic","Slides of stillness. #minimal #photography #aesthetic"],
+    video:["{idea}No words needed. #minimal #video #aesthetic"],
+    reel:["{idea}Clean energy only. #minimal #reels #aesthetic"]
   },
-  storytelling: {
-    image: ["📖 {idea}Every photo hides a story. This one started with a small idea and turned into something I'll never forget. What do you see when you look at this? #story #photography #moments","🌿 {idea}There are places that change you. This was one of them. #travel #photography #storytelling"],
-    video: ["📹 {idea}Three years of work. Thirty seconds of magic. This is what perseverance looks like. #story #journey #reels","🎯 {idea}I didn't know this would happen. But I'm so glad it did. Full story in the video. #storytelling #reels #journey"],
-    reel: ["🎬 {idea}The story behind this reel? A long one. Worth it? 100%. #storytelling #reels #journey"]
+  storytelling:{
+    image:["📖 {idea}Every photo hides a story. This one started with a small idea and turned into something I'll never forget. What do you see when you look at this? #story #photography","🌿 {idea}There are places that change you. This was one of them. #travel #photography #storytelling"],
+    carousel:["📖 {idea}Swipe to see how this story unfolds. Sometimes it takes more than one frame to tell the whole thing. #carousel #storytelling #photography","🗺 {idea}Each slide is a chapter. This one's about finding beauty in unexpected places. Swipe and see. #storytelling #carousel #travel"],
+    video:["📹 {idea}Three years of work. Thirty seconds of magic. This is what perseverance looks like. #story #journey #reels"],
+    reel:["🎬 {idea}The story behind this reel? A long one. Worth it? 100%. #storytelling #reels #journey"]
   },
-  funny: {
-    image: ["😂 {idea}When life gives you lemons… take a photo and pretend everything is fine. #relatable #funny #moodcheck","🤡 {idea}Me pretending to have everything together. Camera roll never lies. #relatable #funny #mood"],
-    video: ["😂 {idea}Nobody asked for this but here we are. You're welcome. #funny #reels #relatable","🎭 {idea}Oscar-worthy performance? Definitely not. Worth watching? Absolutely. #funny #reels #comedy"],
-    reel: ["😂 {idea}This was NOT planned. And that's exactly why it's perfect. #funny #reels #blooper"]
+  funny:{
+    image:["😂 {idea}When life gives you lemons… take a photo and pretend everything is fine. #relatable #funny #mood","🤡 {idea}Me pretending to have everything together. Camera roll never lies. #relatable #funny"],
+    carousel:["😂 {idea}Swipe to see how this day actually went vs how I planned it. #carousel #relatable #funny","🙈 {idea}A carousel of questionable decisions. No regrets though. Swipe ➡️ #funny #carousel #relatable"],
+    video:["😂 {idea}Nobody asked for this but here we are. You're welcome. #funny #reels #relatable"],
+    reel:["😂 {idea}This was NOT planned. And that's exactly why it's perfect. #funny #reels #blooper"]
   },
-  motivational: {
-    image: ["💪 {idea}Every setback is a setup for a comeback. Keep pushing. #motivation #mindset #grind #hustle #success","🚀 {idea}Your only limit is the one you set for yourself. Bet on you. #motivation #success #mindset #hustle"],
-    video: ["🔥 {idea}This is your sign to start. Stop waiting for perfect. #motivation #reels #hustle #success","⚡ {idea}Big things start with small actions. Watch this every morning. #motivation #mindset #reels #success"],
-    reel: ["💥 {idea}Champions are made when nobody's watching. Keep going. #motivation #reels #hustle #success"]
+  motivational:{
+    image:["💪 {idea}Every setback is a setup for a comeback. Keep pushing. #motivation #mindset #grind #hustle","🚀 {idea}Your only limit is the one you set for yourself. Bet on you. #motivation #success #mindset"],
+    carousel:["💥 {idea}Swipe through these reminders for when you need a boost. Save this for your hard days ➡️ #motivation #carousel #mindset","🔥 {idea}Each slide is a step. Keep going — the best one's at the end. Swipe through! #motivation #carousel #hustle"],
+    video:["🔥 {idea}This is your sign to start. Stop waiting for perfect. #motivation #reels #hustle"],
+    reel:["💥 {idea}Champions are made when nobody's watching. Keep going. #motivation #reels #hustle"]
   },
-  professional: {
-    image: ["{idea}Proud to share this milestone with our incredible team. Grateful for the journey ahead. #business #professional #teamwork","🏆 {idea}Excellence is not a destination — it's a standard. #professional #business #leadership"],
-    video: ["{idea}Excited to share this with our community. Insights and takeaways in the video. #business #professional #insights","{idea}Transparency, quality, and results. That's our promise. #professional #business #excellence"],
-    reel: ["{idea}Behind the scenes of how we do what we do. #professional #business #reels #behindthescenes"]
+  professional:{
+    image:["{idea}Proud to share this milestone with our incredible team. Grateful for the journey ahead. #business #professional #teamwork","🏆 {idea}Excellence is not a destination — it's a standard. #professional #business #leadership"],
+    carousel:["{idea}Swipe through our latest insights — we put our best thinking into every slide. #business #professional #carousel","📊 {idea}A few takeaways from this week. Full breakdown in the slides — swipe to explore. #professional #business #insights"],
+    video:["{idea}Excited to share this with our community. Insights and takeaways in the video. #business #professional"],
+    reel:["{idea}Behind the scenes of how we do what we do. #professional #business #reels"]
   }
 };
 
 const hashtagSets = {
-  food: ['#foodie','#instafood','#yummy','#foodphotography','#delicious','#foodlover','#homemade','#foodblogger'],
-  travel: ['#travel','#wanderlust','#travelgram','#explore','#adventure','#vacation','#travelphotography','#instatravel'],
-  fitness: ['#fitness','#gym','#workout','#fitnessmotivation','#health','#training','#fit','#bodybuilding'],
-  fashion: ['#fashion','#style','#ootd','#outfit','#fashionista','#streetstyle','#clothing','#look'],
-  nature: ['#nature','#naturephotography','#outdoors','#landscape','#wildlife','#earth','#hiking','#mountains'],
-  business: ['#business','#entrepreneur','#startup','#success','#marketing','#branding','#innovation','#ceo'],
-  art: ['#art','#artist','#artwork','#creative','#design','#illustration','#digitalart','#painting'],
-  default: ['#instagood','#photooftheday','#love','#beautiful','#happy','#follow','#like','#instagram']
+  food:['#foodie','#instafood','#yummy','#foodphotography','#delicious','#foodlover','#homemade','#foodblogger'],
+  travel:['#travel','#wanderlust','#travelgram','#explore','#adventure','#vacation','#travelphotography','#instatravel'],
+  fitness:['#fitness','#gym','#workout','#fitnessmotivation','#health','#training','#fit','#bodybuilding'],
+  fashion:['#fashion','#style','#ootd','#outfit','#fashionista','#streetstyle','#clothing','#look'],
+  nature:['#nature','#naturephotography','#outdoors','#landscape','#wildlife','#earth','#hiking','#mountains'],
+  business:['#business','#entrepreneur','#startup','#success','#marketing','#branding','#innovation','#ceo'],
+  art:['#art','#artist','#artwork','#creative','#design','#illustration','#digitalart','#painting'],
+  coffee:['#coffee','#coffeetime','#coffeelovers','#morningcoffee','#cafe','#barista','#espresso','#latte'],
+  default:['#instagood','#photooftheday','#love','#beautiful','#happy','#follow','#like','#instagram']
 };
 
-function toggleDark() {
-  isDark = !isDark;
-  localStorage.setItem('autopost_dark', isDark);
-  applyDark();
-}
-function applyDark() {
-  document.documentElement.classList.toggle('dark', isDark);
-  document.getElementById('moonIcon').classList.toggle('hidden', isDark);
-  document.getElementById('sunIcon').classList.toggle('hidden', !isDark);
-}
-applyDark();
-
+/* ═══════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════ */
 function switchTab(tab, btn) {
   ['single','bulk','settings'].forEach(t => {
-    document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
 
-function setType(type) {
+/* ═══════════════════════════════════════════
+   POST TYPE
+═══════════════════════════════════════════ */
+function selectType(type) {
   currentMediaType = type;
-  document.querySelectorAll('.type-btn').forEach(b => {
-    b.classList.remove('border-purple-400','bg-purple-50','text-purple-700','dark:bg-purple-900/30','dark:text-purple-300','dark:border-purple-700');
-    b.classList.add('border-gray-200','dark:border-gray-700','bg-gray-50','dark:bg-gray-800','text-gray-600','dark:text-gray-400');
+  ['image','carousel','video','reel'].forEach(t => {
+    const el = document.getElementById('type'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(el) el.classList.toggle('active', t === type);
   });
-  const active = document.getElementById('type'+type.charAt(0).toUpperCase()+type.slice(1));
-  if (active) {
-    active.classList.remove('border-gray-200','dark:border-gray-700','bg-gray-50','dark:bg-gray-800','text-gray-600','dark:text-gray-400');
-    active.classList.add('border-purple-400','bg-purple-50','text-purple-700','dark:bg-purple-900/30','dark:text-purple-300','dark:border-purple-700');
+  const cp = document.getElementById('carouselPanel');
+  cp.classList.toggle('visible', type === 'carousel');
+  // hide single drop zone hint for carousel
+  if(type==='carousel') {
+    document.getElementById('dropZone').style.opacity = '0.5';
+    document.getElementById('dropZone').style.pointerEvents = 'none';
+  } else {
+    document.getElementById('dropZone').style.opacity = '1';
+    document.getElementById('dropZone').style.pointerEvents = '';
   }
+}
+
+/* ═══════════════════════════════════════════
+   CAROUSEL
+═══════════════════════════════════════════ */
+function addCarouselImages(files) {
+  const remaining = 10 - carouselImages.length;
+  const toAdd = Array.from(files).slice(0, remaining);
+  if(!toAdd.length) { document.getElementById('limitWarn').classList.add('show'); return; }
+  document.getElementById('limitWarn').classList.remove('show');
+  let loaded = 0;
+  toAdd.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      carouselImages.push({src: e.target.result, name: file.name});
+      loaded++;
+      if(loaded === toAdd.length) renderCarousel();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('carouselInput').value = '';
+}
+
+function renderCarousel() {
+  const grid = document.getElementById('carouselImgGrid');
+  document.getElementById('cImgCount').textContent = carouselImages.length;
+  document.getElementById('limitWarn').classList.toggle('show', carouselImages.length >= 10);
+  if(!carouselImages.length) { grid.style.display='none'; return; }
+  grid.style.display = 'block';
+  const inner = document.getElementById('cGridInner');
+  inner.innerHTML = carouselImages.map((img,i) => `
+    <div class="c-thumb" draggable="true"
+      ondragstart="dragSrcIdx=${i}"
+      ondragover="event.preventDefault();this.classList.add('drag-over-slot')"
+      ondragleave="this.classList.remove('drag-over-slot')"
+      ondrop="onCarouselDrop(event,${i})">
+      <img src="${img.src}" alt="slide ${i+1}">
+      <div class="order-badge">${i+1}</div>
+      <button class="rm-btn" onclick="removeCarouselImg(${i})">✕</button>
+    </div>
+  `).join('') + (carouselImages.length < 10 ? `<div class="c-thumb add-slot" onclick="document.getElementById('carouselInput').click()">+</div>` : '');
+}
+
+function removeCarouselImg(idx) {
+  carouselImages.splice(idx,1);
+  renderCarousel();
+}
+
+function onCarouselDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over-slot');
+  if(dragSrcIdx===null||dragSrcIdx===targetIdx) return;
+  const moved = carouselImages.splice(dragSrcIdx,1)[0];
+  carouselImages.splice(targetIdx,0,moved);
+  dragSrcIdx = null;
+  renderCarousel();
+}
+
+const cdz = document.getElementById('carouselDrop');
+cdz.addEventListener('dragover', e=>{e.preventDefault();cdz.style.borderColor='var(--p500)';cdz.style.background='var(--p100)'});
+cdz.addEventListener('dragleave', ()=>{cdz.style.borderColor='';cdz.style.background=''});
+cdz.addEventListener('drop', e=>{e.preventDefault();cdz.style.borderColor='';cdz.style.background='';addCarouselImages(e.dataTransfer.files)});
+
+/* ═══════════════════════════════════════════
+   FILE HANDLING
+═══════════════════════════════════════════ */
+function handleFile(file) {
+  if(!file) return;
+  currentFile = file;
+  const isVideo = file.type.startsWith('video');
+  if(isVideo) selectType(file.name.toLowerCase().includes('reel')?'reel':'video');
+  else selectType('image');
+  const url = URL.createObjectURL(file);
+  document.getElementById('dropDefault').style.display = 'none';
+  document.getElementById('dropPreview').style.display = 'block';
+  const img = document.getElementById('imgPreview');
+  const vid = document.getElementById('vidPreview');
+  if(isVideo){img.style.display='none';vid.style.display='block';vid.src=url;vid.load();}
+  else{vid.style.display='none';img.style.display='block';img.src=url;}
+  document.getElementById('previewName').textContent = file.name;
+  document.getElementById('previewSize').textContent = fmtBytes(file.size);
+}
+
+function clearFile(e) {
+  if(e) e.stopPropagation();
+  currentFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('dropDefault').style.display = 'block';
+  document.getElementById('dropPreview').style.display = 'none';
+  document.getElementById('imgPreview').src='';
+  document.getElementById('vidPreview').src='';
+}
+
+function fmtBytes(b) {
+  if(b<1024) return b+' B';
+  if(b<1048576) return (b/1024).toFixed(1)+' KB';
+  return (b/1048576).toFixed(1)+' MB';
+}
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+
+/* ═══════════════════════════════════════════
+   CAPTION & HASHTAGS
+═══════════════════════════════════════════ */
+function generateCaption(type, idea, style) {
+  style = style || document.getElementById('captionStyle').value || 'engaging';
+  const set = captionTemplates[style] || captionTemplates.engaging;
+  const pool = set[type] || set.image || captionTemplates.engaging.image;
+  const tpl = pool[Math.floor(Math.random()*pool.length)];
+  return tpl.replace('{idea}', idea ? idea+' — ' : '');
 }
 
 function updateCharCount() {
   const len = document.getElementById('captionInput').value.length;
   const el = document.getElementById('captionCharCount');
-  el.textContent = `${len} / 2200`;
-  el.className = 'char-count' + (len > 2000 ? ' over' : len > 1800 ? ' warn' : '');
-}
-
-function toggleSchedule() {
-  const checked = document.getElementById('scheduleToggle').checked;
-  document.getElementById('scheduleFields').classList.toggle('hidden', !checked);
-  if (checked) {
-    const now = new Date();
-    now.setHours(now.getHours() + 1);
-    document.getElementById('scheduleTime').value = now.toISOString().slice(0,16);
-  }
-}
-
-// ---- FILE HANDLING (FIXED for video) ----
-function handleFile(file) {
-  if (!file) return;
-  currentFile = file;
-  const isVideo = file.type.startsWith('video');
-  if (isVideo) setType(file.name.toLowerCase().includes('reel') ? 'reel' : 'video');
-  else setType('image');
-
-  // Use createObjectURL — faster, no base64 memory issue for large videos
-  const objectURL = URL.createObjectURL(file);
-
-  document.getElementById('dropDefault').classList.add('hidden');
-  document.getElementById('dropPreview').classList.remove('hidden');
-  const img = document.getElementById('imgPreview');
-  const vid = document.getElementById('vidPreview');
-
-  if (isVideo) {
-    img.classList.add('hidden');
-    vid.classList.remove('hidden');
-    vid.src = objectURL;
-    vid.load();
-  } else {
-    vid.classList.add('hidden');
-    img.classList.remove('hidden');
-    img.src = objectURL;
-  }
-
-  document.getElementById('previewName').textContent = file.name;
-  document.getElementById('previewSize').textContent = formatBytes(file.size);
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/1048576).toFixed(1) + ' MB';
-}
-
-function clearFile(e) {
-  if (e) e.stopPropagation();
-  if (currentFile) {
-    const vid = document.getElementById('vidPreview');
-    if (vid.src) URL.revokeObjectURL(vid.src);
-    const img = document.getElementById('imgPreview');
-    if (img.src) URL.revokeObjectURL(img.src);
-  }
-  currentFile = null;
-  document.getElementById('fileInput').value = '';
-  document.getElementById('dropDefault').classList.remove('hidden');
-  document.getElementById('dropPreview').classList.add('hidden');
-  document.getElementById('imgPreview').src = '';
-  document.getElementById('vidPreview').src = '';
-}
-
-const dz = document.getElementById('dropZone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-dz.addEventListener('drop', e => {
-  e.preventDefault();
-  dz.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
-});
-
-// Bulk drop
-const bdz = document.getElementById('bulkDropZone');
-bdz.addEventListener('dragover', e => { e.preventDefault(); bdz.classList.add('drag-over'); });
-bdz.addEventListener('dragleave', () => bdz.classList.remove('drag-over'));
-bdz.addEventListener('drop', e => {
-  e.preventDefault();
-  bdz.classList.remove('drag-over');
-  handleBulk(e.dataTransfer.files);
-});
-
-// ---- GENERATE CAPTION ----
-function generateCaption(type, idea, style) {
-  style = style || document.getElementById('captionStyle').value || 'engaging';
-  type = type || currentMediaType;
-  const templates = (captionTemplates[style] || captionTemplates.engaging)[type] || captionTemplates.engaging.image;
-  const tpl = templates[Math.floor(Math.random() * templates.length)];
-  const prefix = idea ? idea + ' — ' : '';
-  return tpl.replace('{idea}', idea ? idea + ' — ' : '');
+  el.textContent = len+' / 2200';
+  el.className = 'char-count'+(len>2000?' over':len>1800?' warn':'');
 }
 
 function genHashtags() {
   const idea = document.getElementById('captionInput').value.toLowerCase();
   let chosen = hashtagSets.default;
-  for (const [key, tags] of Object.entries(hashtagSets)) {
-    if (idea.includes(key)) { chosen = tags; break; }
-  }
-  const selected = chosen.sort(() => 0.5 - Math.random()).slice(0, 6);
-  renderHashtagChips(selected);
-  lastGeneratedHashtags = selected;
+  for(const[k,v] of Object.entries(hashtagSets)){if(idea.includes(k)){chosen=v;break;}}
+  const selected = [...chosen].sort(()=>.5-Math.random()).slice(0,7);
+  renderHashtags(selected);
+  lastHashtags = selected;
 }
 
-function renderHashtagChips(tags) {
-  const wrap = document.getElementById('hashtagWrap');
-  document.getElementById('hashtagPlaceholder').style.display = 'none';
-  wrap.innerHTML = tags.map(t => `<span class="hashtag-chip" onclick="toggleHashtag(this,'${t}')">${t}</span>`).join('');
+function renderHashtags(tags) {
+  const area = document.getElementById('hashtagArea');
+  document.getElementById('htagPlaceholder').style.display = 'none';
+  area.innerHTML = '<span id="htagPlaceholder" style="display:none"></span>' + tags.map(t=>`<span class="htag selected" onclick="toggleHtag(this)">${t}</span>`).join('');
 }
 
-function toggleHashtag(el, tag) {
-  el.classList.toggle('opacity-40');
+function toggleHtag(el) {
+  el.classList.toggle('selected');
+  el.classList.toggle('deselected');
 }
 
 function getSelectedHashtags() {
-  return Array.from(document.querySelectorAll('#hashtagWrap .hashtag-chip:not(.opacity-40)')).map(el => el.textContent);
+  return [...document.querySelectorAll('#hashtagArea .htag.selected')].map(e=>e.textContent);
 }
 
-// ---- PROGRESS SIMULATION ----
-function simulateProgress(label, onDone) {
+/* ═══════════════════════════════════════════
+   PROGRESS
+═══════════════════════════════════════════ */
+function simulateProgress(label) {
   const wrap = document.getElementById('uploadProgress');
   const fill = document.getElementById('progressFill');
   const lbl = document.getElementById('progressLabel');
   const pct = document.getElementById('progressPct');
-  wrap.classList.remove('hidden');
+  wrap.style.display = 'block';
   fill.style.width = '0%';
   lbl.textContent = label;
-  let progress = 0;
-  const interval = setInterval(() => {
-    progress += Math.random() * 18 + 5;
-    if (progress >= 95) { progress = 95; clearInterval(interval); onDone(); }
-    fill.style.width = progress + '%';
-    pct.textContent = Math.floor(progress) + '%';
-  }, 120);
-  return interval;
+  let p = 0;
+  const id = setInterval(()=>{
+    p += Math.random()*18+4;
+    if(p>=94){p=94;clearInterval(id);}
+    fill.style.width = p+'%';
+    pct.textContent = Math.floor(p)+'%';
+  }, 130);
+  return id;
 }
 
 function finishProgress() {
   document.getElementById('progressFill').style.width = '100%';
   document.getElementById('progressPct').textContent = '100%';
   document.getElementById('progressLabel').textContent = 'Done!';
-  setTimeout(() => document.getElementById('uploadProgress').classList.add('hidden'), 1200);
+  setTimeout(()=>document.getElementById('uploadProgress').style.display='none', 1200);
 }
 
-// ---- MAIN SUBMIT ----
+/* ═══════════════════════════════════════════
+   SUBMIT
+═══════════════════════════════════════════ */
 async function handleSubmit() {
-  if (!currentFile) { showToast('Please select a file first.', 'error'); return; }
+  const isCarousel = currentMediaType === 'carousel';
+  if(!isCarousel && !currentFile) { showToast('Please select a file first.','error'); return; }
+  if(isCarousel && carouselImages.length < 2) { showToast('Add at least 2 images for a carousel.','error'); return; }
 
   const btn = document.getElementById('submitBtn');
   btn.innerHTML = '<span class="spinner"></span> Processing...';
   btn.disabled = true;
 
-  const captionIdea = document.getElementById('captionInput').value.trim();
+  const idea = document.getElementById('captionInput').value.trim();
   const style = document.getElementById('captionStyle').value;
   const isScheduled = document.getElementById('scheduleToggle').checked;
   const scheduleTime = isScheduled ? document.getElementById('scheduleTime').value : null;
-  const fileName = currentFile.name;
-  const isVideo = currentFile.type.startsWith('video');
-  const mediaType = currentMediaType;
 
-  // Generate caption immediately (no delay)
-  const caption = generateCaption(mediaType, captionIdea, style);
-  const autoH = document.getElementById('autoHashtags') ? document.getElementById('autoHashtags').checked : true;
-  const hashtags = autoH ? (lastGeneratedHashtags.length > 0 ? getSelectedHashtags() : hashtagSets.default.slice(0,5)) : [];
-  const fullCaption = caption + (hashtags.length ? '\n\n' + hashtags.join(' ') : '');
+  const caption = generateCaption(currentMediaType, idea, style);
+  const autoH = document.getElementById('autoHashtags').checked;
+  const hashtags = autoH ? (lastHashtags.length ? getSelectedHashtags() : hashtagSets.default.slice(0,5)) : [];
+  const fullCaption = caption + (hashtags.length ? '\n\n'+hashtags.join(' ') : '');
+  lastCaption = fullCaption;
 
-  lastGeneratedCaption = fullCaption;
-
-  // Show preview instantly
   showCaptionPreview(fullCaption, hashtags);
 
-  // Create thumbnail using objectURL (instant, no base64 needed for display)
-  const thumbURL = URL.createObjectURL(currentFile);
+  const thumbURL = isCarousel ? carouselImages[0].src : (currentFile ? URL.createObjectURL(currentFile) : null);
+  const fileName = isCarousel ? `Carousel (${carouselImages.length} slides)` : (currentFile ? currentFile.name : 'carousel');
 
   const post = {
     id: Date.now(),
     name: fileName,
-    type: mediaType,
+    type: currentMediaType,
     caption: fullCaption,
     status: isScheduled ? 'scheduled' : 'pending',
-    scheduleTime: scheduleTime,
+    scheduleTime,
     time: isScheduled
       ? new Date(scheduleTime).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
       : new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
     thumbURL,
-    isVideo
+    isVideo: currentFile ? currentFile.type.startsWith('video') : false,
+    isCarousel,
+    slideCount: isCarousel ? carouselImages.length : 0
   };
   posts.unshift(post);
   saveAndRender();
 
-  if (isScheduled) {
-    showToast(`Post scheduled for ${post.time} ✅`, 'info');
+  if(isScheduled) {
+    showToast(`Scheduled for ${post.time} ✅`,'info');
     resetForm();
-    btn.innerHTML = btnDefaultHTML();
+    btn.innerHTML = defaultBtnHTML();
     btn.disabled = false;
     return;
   }
 
-  // Send to webhook with progress
-  simulateProgress(isVideo ? 'Uploading video...' : 'Uploading image...', () => {});
+  simulateProgress(isCarousel ? 'Uploading carousel...' : currentFile.type.startsWith('video') ? 'Uploading video...' : 'Uploading image...');
 
   try {
-    const formData = new FormData();
-    formData.append('file', currentFile);
-    formData.append('caption', fullCaption);
-    formData.append('mediaType', mediaType);
-    formData.append('captionIdea', captionIdea);
-    formData.append('fileName', fileName);
-
-    // Use AbortController to set a 60s timeout (handles large videos)
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
-
-    const res = await fetch(settings.webhook, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
-
+    const fd = new FormData();
+    if(isCarousel) {
+      fd.append('caption', fullCaption);
+      fd.append('mediaType','carousel');
+      fd.append('slideCount', carouselImages.length);
+      carouselImages.forEach((img,i) => {
+        const blob = dataURLtoBlob(img.src);
+        fd.append('files[]', blob, `slide_${i+1}.jpg`);
+      });
+    } else {
+      fd.append('file', currentFile);
+      fd.append('caption', fullCaption);
+      fd.append('mediaType', currentMediaType);
+      fd.append('fileName', currentFile.name);
+    }
+    fd.append('captionIdea', idea);
+    const ctrl = new AbortController();
+    const to = setTimeout(()=>ctrl.abort(), 60000);
+    const res = await fetch(settings.webhook, {method:'POST', body:fd, signal:ctrl.signal});
+    clearTimeout(to);
     post.status = res.ok ? 'posted' : 'error';
-    showToast(res.ok ? 'Posted to Instagram! ✅' : `Server error ${res.status}`, res.ok ? 'success' : 'error');
-  } catch (err) {
-    post.status = err.name === 'AbortError' ? 'error' : 'error';
-    const msg = err.name === 'AbortError'
-      ? 'Upload timeout. Check your webhook & file size.'
-      : 'Webhook not reachable. Post saved as pending.';
-    showToast(msg, 'error');
+    showToast(res.ok ? 'Posted to Instagram! ✅' : `Server error ${res.status}`, res.ok?'success':'error');
+  } catch(err) {
+    post.status = 'error';
+    showToast(err.name==='AbortError'?'Upload timeout. Check webhook & file size.':'Webhook not reachable. Post saved as pending.','error');
   }
 
   finishProgress();
   saveAndRender();
   resetForm();
-  btn.innerHTML = btnDefaultHTML();
+  btn.innerHTML = defaultBtnHTML();
   btn.disabled = false;
 }
 
-function btnDefaultHTML() {
-  return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Upload & Post to Instagram';
+function dataURLtoBlob(dataURL) {
+  const [header, data] = dataURL.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const raw = atob(data);
+  const arr = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return new Blob([arr],{type:mime});
 }
 
-// ---- BULK UPLOAD ----
+function defaultBtnHTML() {
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Upload &amp; Post to Instagram';
+}
+
+/* ═══════════════════════════════════════════
+   BULK
+═══════════════════════════════════════════ */
 function handleBulk(files) {
-  bulkFiles = Array.from(files).slice(0, 10);
+  bulkFiles = Array.from(files).slice(0,10);
   const list = document.getElementById('bulkList');
-  list.innerHTML = bulkFiles.map((f, i) => {
-    const isV = f.type.startsWith('video');
-    return `<div class="bulk-item fade-in">
-      <span class="text-lg">${isV ? '🎥' : '🖼'}</span>
-      <div class="flex-1 min-w-0">
-        <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">${f.name}</p>
-        <p class="text-xs text-gray-400">${formatBytes(f.size)}</p>
+  list.innerHTML = bulkFiles.map((f,i)=>`
+    <div class="bulk-item fade-in">
+      <span style="font-size:20px">${f.type.startsWith('video')?'🎥':'🖼'}</span>
+      <div class="bulk-info">
+        <div class="bulk-name">${f.name}</div>
+        <div class="bulk-size">${fmtBytes(f.size)}</div>
       </div>
-      <button onclick="removeBulkFile(${i})" class="text-xs text-red-400 hover:text-red-600">✕</button>
-    </div>`;
-  }).join('');
-  document.getElementById('bulkActions').classList.toggle('hidden', bulkFiles.length === 0);
+      <button class="bulk-rm" onclick="removeBulkFile(${i})">✕</button>
+    </div>`).join('');
+  document.getElementById('bulkActions').style.display = bulkFiles.length ? 'block' : 'none';
 }
 
-function removeBulkFile(i) {
-  bulkFiles.splice(i, 1);
-  handleBulk(bulkFiles);
-}
-
-function clearBulk() {
-  bulkFiles = [];
-  document.getElementById('bulkList').innerHTML = '';
-  document.getElementById('bulkActions').classList.add('hidden');
-  document.getElementById('bulkInput').value = '';
-}
+function removeBulkFile(i) { bulkFiles.splice(i,1); handleBulk(bulkFiles); }
+function clearBulk() { bulkFiles=[]; document.getElementById('bulkList').innerHTML=''; document.getElementById('bulkActions').style.display='none'; document.getElementById('bulkInput').value=''; }
 
 async function handleBulkSubmit() {
-  if (bulkFiles.length === 0) return;
+  if(!bulkFiles.length) return;
   const btn = document.getElementById('bulkSubmitBtn');
-  btn.innerHTML = '<span class="spinner"></span> Posting...';
-  btn.disabled = true;
+  btn.innerHTML='<span class="spinner"></span> Posting...';btn.disabled=true;
   const style = document.getElementById('bulkCaptionStyle').value;
-
-  for (const file of bulkFiles) {
-    const isVideo = file.type.startsWith('video');
-    const mtype = isVideo ? 'video' : 'image';
-    const caption = generateCaption(mtype, '', style);
-    const hashtags = hashtagSets.default.slice(0,5);
-    const fullCaption = caption + '\n\n' + hashtags.join(' ');
+  for(const file of bulkFiles) {
+    const isV = file.type.startsWith('video');
+    const mtype = isV?'video':'image';
+    const caption = generateCaption(mtype,'',style);
+    const h = hashtagSets.default.slice(0,5);
+    const full = caption+'\n\n'+h.join(' ');
     const thumbURL = URL.createObjectURL(file);
-
-    const post = {
-      id: Date.now() + Math.random(),
-      name: file.name,
-      type: mtype,
-      caption: fullCaption,
-      status: 'pending',
-      time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
-      thumbURL,
-      isVideo
-    };
-    posts.unshift(post);
-    saveAndRender();
-
+    const post = {id:Date.now()+Math.random(),name:file.name,type:mtype,caption:full,status:'pending',time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),thumbURL,isVideo:isV};
+    posts.unshift(post);saveAndRender();
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('caption', fullCaption);
-      formData.append('mediaType', mtype);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
-      const res = await fetch(settings.webhook, { method: 'POST', body: formData, signal: controller.signal });
-      clearTimeout(timeout);
-      post.status = res.ok ? 'posted' : 'error';
-    } catch {
-      post.status = 'error';
-    }
+      const fd=new FormData(); fd.append('file',file); fd.append('caption',full); fd.append('mediaType',mtype);
+      const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(),60000);
+      const res=await fetch(settings.webhook,{method:'POST',body:fd,signal:ctrl.signal});
+      clearTimeout(to); post.status=res.ok?'posted':'error';
+    } catch{post.status='error';}
     saveAndRender();
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r=>setTimeout(r,300));
   }
-
-  showToast(`${bulkFiles.length} posts processed!`, 'success');
-  clearBulk();
-  btn.innerHTML = 'Post All to Instagram';
-  btn.disabled = false;
+  showToast(`${bulkFiles.length} posts processed!`,'success');
+  clearBulk(); btn.innerHTML='Post All to Instagram'; btn.disabled=false;
 }
 
-// ---- CAPTION PREVIEW ----
+const bdz = document.getElementById('bulkDropZone');
+bdz.addEventListener('dragover',e=>{e.preventDefault();bdz.classList.add('drag-over')});
+bdz.addEventListener('dragleave',()=>bdz.classList.remove('drag-over'));
+bdz.addEventListener('drop',e=>{e.preventDefault();bdz.classList.remove('drag-over');handleBulk(e.dataTransfer.files)});
+
+/* ═══════════════════════════════════════════
+   CAPTION PREVIEW
+═══════════════════════════════════════════ */
 function showCaptionPreview(caption, hashtags) {
   const panel = document.getElementById('captionPreview');
-  panel.classList.remove('hidden');
-  panel.classList.add('fade-in');
-  document.getElementById('previewCaption').textContent = caption;
-  const hw = document.getElementById('previewHashtags');
-  hw.innerHTML = (hashtags || []).map(h => `<span class="hashtag-chip">${h}</span>`).join('');
+  panel.classList.add('visible');
+  document.getElementById('previewCaptionText').textContent = caption;
+  document.getElementById('previewHashtags').innerHTML = (hashtags||[]).map(h=>`<span class="htag selected">${h}</span>`).join('');
 }
 
 function copyCaption() {
-  navigator.clipboard.writeText(lastGeneratedCaption).then(() => showToast('Caption copied!', 'success'));
+  navigator.clipboard.writeText(lastCaption).then(()=>showToast('Caption copied!','success'));
 }
 
+/* ═══════════════════════════════════════════
+   SCHEDULE
+═══════════════════════════════════════════ */
+function toggleSchedule() {
+  const on = document.getElementById('scheduleToggle').checked;
+  document.getElementById('scheduleFields').style.display = on ? 'block' : 'none';
+  if(on) {
+    const d = new Date(); d.setHours(d.getHours()+1);
+    document.getElementById('scheduleTime').value = d.toISOString().slice(0,16);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════ */
 function resetForm() {
   clearFile(null);
-  document.getElementById('captionInput').value = '';
-  document.getElementById('fileInput').value = '';
-  document.getElementById('scheduleToggle').checked = false;
-  document.getElementById('scheduleFields').classList.add('hidden');
-  document.getElementById('hashtagWrap').innerHTML = '<span class="text-xs text-gray-400 italic" id="hashtagPlaceholder">Click auto-generate or type a topic above</span>';
-  lastGeneratedHashtags = [];
+  document.getElementById('captionInput').value='';
+  document.getElementById('fileInput').value='';
+  document.getElementById('scheduleToggle').checked=false;
+  document.getElementById('scheduleFields').style.display='none';
+  document.getElementById('hashtagArea').innerHTML='<span class="htag-placeholder" id="htagPlaceholder">Auto-generate or type a topic above</span>';
+  lastHashtags=[];
+  carouselImages=[];
+  renderCarousel();
+  selectType('image');
   updateCharCount();
 }
 
-// ---- DASHBOARD ----
+/* ═══════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════ */
 function saveAndRender() {
-  // Store without large thumbURLs to avoid localStorage quota
-  const toSave = posts.map(p => {
-    const { thumbURL, ...rest } = p;
-    return rest;
-  });
-  try { localStorage.setItem('autopost_posts', JSON.stringify(toSave)); } catch {}
+  try {
+    const toSave = posts.map(({thumbURL,...rest})=>rest);
+    localStorage.setItem('autopost_posts', JSON.stringify(toSave));
+  } catch{}
   renderTable();
   updateStats();
 }
 
 function renderTable() {
   const filter = document.getElementById('filterSelect').value;
-  const filtered = filter === 'all' ? posts : posts.filter(p => p.status === filter);
+  const filtered = filter==='all' ? posts : posts.filter(p=>p.status===filter);
   const empty = document.getElementById('emptyState');
   const wrap = document.getElementById('tableWrap');
   const body = document.getElementById('tableBody');
+  const pill = document.getElementById('postCountPill');
 
-  if (filtered.length === 0) {
-    empty.classList.remove('hidden'); wrap.classList.add('hidden');
-    document.getElementById('postCount').classList.add('hidden');
-    return;
+  if(!filtered.length) {
+    empty.style.display='block'; wrap.style.display='none'; pill.style.display='none'; return;
   }
-  empty.classList.add('hidden'); wrap.classList.remove('hidden');
-  document.getElementById('postCount').classList.remove('hidden');
-  document.getElementById('countLabel').textContent = `${posts.length} post${posts.length !== 1 ? 's' : ''}`;
+  empty.style.display='none'; wrap.style.display='block';
+  pill.style.display='inline-flex';
+  document.getElementById('countLabel').textContent=`${posts.length} post${posts.length!==1?'s':''}`;
 
-  body.innerHTML = filtered.map((p, i) => {
-    const statusMap = { posted: 'status-posted', error: 'status-error', pending: 'status-pending', scheduled: 'status-scheduled' };
-    const labelMap = { posted: '✓ Posted', error: '✕ Error', pending: '⏳ Pending', scheduled: '📅 Scheduled' };
-    const bc = statusMap[p.status] || 'status-pending';
-    const bl = labelMap[p.status] || p.status;
-    const mediaEl = p.thumbURL
-      ? (p.isVideo
-        ? `<video src="${p.thumbURL}" class="preview-media"></video>`
-        : `<img src="${p.thumbURL}" class="preview-media" />`)
-      : `<div class="w-16 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-300 text-xs">${p.isVideo ? '🎥' : '🖼'}</div>`;
-    return `<tr class="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors fade-in">
-      <td class="px-4 py-3 text-xs text-gray-400">${filtered.length - i}</td>
-      <td class="px-4 py-3">${mediaEl}</td>
-      <td class="px-4 py-3 max-w-[110px]"><p class="text-xs font-medium truncate text-gray-700 dark:text-gray-300">${p.name}</p><p class="text-xs text-gray-400 mt-0.5 capitalize">${p.type}</p></td>
-      <td class="px-4 py-3 max-w-[160px]"><p class="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">${p.caption || '<span class="text-gray-300 italic">Generating...</span>'}</p></td>
-      <td class="px-4 py-3"><span class="status-badge ${bc}">${bl}</span></td>
-      <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">${p.time}</td>
-      <td class="px-4 py-3"><button onclick="deletePost(${p.id})" class="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-500 transition-colors text-xs">✕</button></td>
+  const badgeMap={posted:'badge-posted',error:'badge-error',pending:'badge-pending',scheduled:'badge-scheduled'};
+  const labelMap={posted:'✓ Posted',error:'✕ Error',pending:'⏳ Pending',scheduled:'📅 Scheduled'};
+
+  body.innerHTML = filtered.map((p,i)=>{
+    let mediaEl;
+    if(p.isCarousel) {
+      mediaEl=`<div class="preview-placeholder">🎠<span style="font-size:9px;margin-left:2px">${p.slideCount}</span></div>`;
+    } else if(p.thumbURL) {
+      mediaEl = p.isVideo
+        ? `<video src="${p.thumbURL}" class="preview-thumb"></video>`
+        : `<img src="${p.thumbURL}" class="preview-thumb" alt=""/>`;
+    } else {
+      mediaEl=`<div class="preview-placeholder">${p.isVideo?'🎥':'🖼'}</div>`;
+    }
+    return `<tr class="fade-in">
+      <td style="font-size:11px;color:var(--gray400)">${filtered.length-i}</td>
+      <td>${mediaEl}</td>
+      <td><div class="file-name">${p.name}</div><div class="file-type">${p.type}</div></td>
+      <td><div class="caption-cell">${p.caption||'<em style="color:var(--gray400)">Generating…</em>'}</div></td>
+      <td><span class="badge ${badgeMap[p.status]||'badge-pending'}">${labelMap[p.status]||p.status}</span></td>
+      <td class="time-cell">${p.time}</td>
+      <td><button class="del-btn" onclick="deletePost(${p.id})">✕</button></td>
     </tr>`;
   }).join('');
 }
 
 function updateStats() {
-  document.getElementById('statTotal').textContent = posts.length;
-  document.getElementById('statPosted').textContent = posts.filter(p => p.status === 'posted').length;
-  document.getElementById('statPending').textContent = posts.filter(p => p.status === 'pending').length;
-  document.getElementById('statScheduled').textContent = posts.filter(p => p.status === 'scheduled').length;
+  document.getElementById('statTotal').textContent=posts.length;
+  document.getElementById('statPosted').textContent=posts.filter(p=>p.status==='posted').length;
+  document.getElementById('statPending').textContent=posts.filter(p=>p.status==='pending').length;
+  document.getElementById('statScheduled').textContent=posts.filter(p=>p.status==='scheduled').length;
 }
 
-function deletePost(id) {
-  posts = posts.filter(p => p.id !== id);
-  saveAndRender();
-}
-
-function clearAll() {
-  if (posts.length === 0) return;
-  if (!confirm('Clear all posts?')) return;
-  posts = [];
-  saveAndRender();
-  document.getElementById('captionPreview').classList.add('hidden');
-}
+function deletePost(id) { posts=posts.filter(p=>p.id!==id); saveAndRender(); }
+function clearAll() { if(!posts.length||!confirm('Clear all posts?')) return; posts=[]; saveAndRender(); document.getElementById('captionPreview').classList.remove('visible'); }
 
 function exportCSV() {
-  if (posts.length === 0) { showToast('No posts to export.', 'error'); return; }
-  const rows = [['#','File','Type','Caption','Status','Time']];
-  posts.forEach((p, i) => rows.push([i+1, p.name, p.type, `"${(p.caption||'').replace(/"/g,'""')}"`, p.status, p.time]));
-  const csv = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'autopost-export.csv'; a.click();
+  if(!posts.length){showToast('No posts to export.','error');return;}
+  const rows=[['#','File','Type','Caption','Status','Time']];
+  posts.forEach((p,i)=>rows.push([i+1,p.name,p.type,`"${(p.caption||'').replace(/"/g,'""')}"`,p.status,p.time]));
+  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='autopost-export.csv';a.click();
   URL.revokeObjectURL(url);
-  showToast('Exported as CSV!', 'success');
+  showToast('Exported as CSV!','success');
 }
 
-// ---- SCHEDULER MODAL ----
+/* ═══════════════════════════════════════════
+   SCHEDULER MODAL
+═══════════════════════════════════════════ */
 function openScheduler() {
   const modal = document.getElementById('scheduleModal');
-  modal.classList.remove('hidden');
-  const scheduled = posts.filter(p => p.status === 'scheduled');
+  modal.classList.add('open');
+  const scheduled = posts.filter(p=>p.status==='scheduled');
   const list = document.getElementById('scheduledList');
   const empty = document.getElementById('scheduledEmpty');
-  if (scheduled.length === 0) {
-    list.innerHTML = ''; empty.classList.remove('hidden');
-  } else {
-    empty.classList.add('hidden');
-    list.innerHTML = scheduled.map(p => `
-      <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-        <span class="text-lg">${p.isVideo ? '🎥' : '🖼'}</span>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">${p.name}</p>
-          <p class="text-xs text-blue-500">📅 ${p.time}</p>
-        </div>
-        <button onclick="deletePost(${p.id});openScheduler()" class="text-xs text-red-400 hover:text-red-600">Remove</button>
-      </div>`).join('');
-  }
-}
-function closeScheduler(e) {
-  if (e.target === document.getElementById('scheduleModal'))
-    document.getElementById('scheduleModal').classList.add('hidden');
+  if(!scheduled.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML = scheduled.map(p=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--p50);border:1px solid var(--p100);border-radius:var(--radius-md);margin-bottom:10px">
+      <span style="font-size:22px">${p.isVideo?'🎥':p.isCarousel?'🎠':'🖼'}</span>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:13px;font-weight:500;color:var(--gray800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</p>
+        <p style="font-size:12px;color:var(--p600);margin-top:2px">📅 ${p.time}</p>
+      </div>
+      <button onclick="deletePost(${p.id});openScheduler()" style="font-size:12px;color:#dc2626;background:none;border:none;cursor:pointer;font-family:var(--font-body);font-weight:600">Remove</button>
+    </div>`).join('');
 }
 
-// ---- SETTINGS ----
+function closeScheduler(e) {
+  if(e.target===document.getElementById('scheduleModal'))
+    document.getElementById('scheduleModal').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════ */
 function saveSettings() {
   settings.webhook = document.getElementById('webhookInput').value || DEFAULT_WEBHOOK;
   settings.defaultStyle = document.getElementById('defaultStyleSetting').value;
   settings.igHandle = document.getElementById('igHandle').value;
   localStorage.setItem('autopost_settings', JSON.stringify(settings));
-  showToast('Settings saved!', 'success');
+  showToast('Settings saved!','success');
 }
+if(settings.webhook && settings.webhook!==DEFAULT_WEBHOOK) document.getElementById('webhookInput').value=settings.webhook;
 
-// Load saved settings into fields
-if (settings.webhook && settings.webhook !== DEFAULT_WEBHOOK) {
-  document.getElementById('webhookInput').value = settings.webhook;
-}
-
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
 function showToast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast toast-${type}`;
-  t.classList.remove('hidden');
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => t.classList.add('hidden'), 4500);
+  t.textContent=msg; t.className=`toast toast-${type} show`;
+  clearTimeout(window._tt);
+  window._tt=setTimeout(()=>t.classList.remove('show'),4500);
 }
 
+/* ─── INIT ─── */
 renderTable();
 updateStats();
 </script>
